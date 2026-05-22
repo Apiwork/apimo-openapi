@@ -1,1 +1,2 @@
-# Swagger-api3
+# Apimo-openapi
+Official repo of Apimo
