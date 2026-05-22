@@ -12,7 +12,7 @@ info:
   contact:
     name: Apimo Support
     url: https://apimo.net/fr/contact
-  version: 1.0.0
+  version: 3.0.0
 servers:
 - url: https://virtserver.swaggerhub.com/apimo-8ef/Api3/1.0.0
   description: SwaggerHub API Auto Mocking
