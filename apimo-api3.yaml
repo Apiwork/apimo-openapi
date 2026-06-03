@@ -29,6 +29,8 @@ tags:
     description: Biens immobiliers (annonces)
   - name: Property Media
     description: Médias attachés à un bien (photos, vidéos, documents)
+  - name: Property Provider
+    description: Gestion de la publication d'un bien sur les portails partenaires
   - name: Contacts
     description: Contacts clients de l'agence
   - name: Leads
@@ -1730,8 +1732,8 @@ paths:
   # ─────────────────────────────────────────
   /agencies/{agency_id}/properties/{property_id}/provider:
     put:
-      tags: [Property Media]
       operationId: updatePropertyProvider
+      tags: [Property Provider]
       summary: Update information related to the publishing of the property
       description: "Met à jour les informations de publication d'un bien sur un portail partenaire (URL et date de publication)."
       parameters:
@@ -1792,8 +1794,8 @@ paths:
   # ─────────────────────────────────────────
   /agencies/{agency_id}/properties/{property_id}/providers:
     get:
-      tags: [Property Media]
       operationId: listPropertyProviders
+      tags: [Property Provider]
       summary: Provider list for a specific property
       description: "Retourne la liste des portails partenaires ayant accès à ce bien."
       parameters:
@@ -1841,8 +1843,8 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
     post:
-      tags: [Property Media]
       operationId: grantPropertyProvider
+      tags: [Property Provider]
       summary: Grant property access to a provider
       description: "Donne accès à un ou plusieurs portails partenaires pour publier ce bien."
       parameters:
@@ -2534,6 +2536,69 @@ paths:
                       leads:
                         type: array
                         items: { $ref: '#/components/schemas/Lead' }
+                    example:
+                      total_items: 1
+                      timestamp: 1417615695
+                      leads:
+                        - id: 123456
+                          parent: null
+                          provider: "4"
+                          agency: "101"
+                          type: "1"
+                          step: "4"
+                          date: "2014-12-03 15:08:15"
+                          start_at: null
+                          end_at: null
+                          reference: "194D1DDEDdE"
+                          lastname: "DUPONT"
+                          firstname: "Jean"
+                          email: "user@example.com"
+                          phone: null
+                          mobile: null
+                          method: null
+                          language: "fr"
+                          country: "FR"
+                          referral: null
+                          subreferral: null
+                          property: null
+                          property_address: null
+                          property_address_more: null
+                          property_zipcode: null
+                          property_city: null
+                          property_country: null
+                          property_view_landscape: null
+                          property_view_type: null
+                          contact: null
+                          request: null
+                          user: null
+                          opened:
+                            date: "2014-11-11 21:54:30"
+                            user: "4358"
+                          assigned:
+                            date: null
+                            user: null
+                          closed:
+                            date: "2014-11-13 09:07:07"
+                            user: "5661"
+                          message: ""
+                          criteria:
+                            category: null
+                            area:
+                              min: null
+                              max: null
+                            room:
+                              min: null
+                              max: null
+                            price:
+                              min: null
+                              max: null
+                              currency: null
+                            cities: []
+                            locations: []
+                            types: []
+                            subtype: null
+                          created_at: "2014-11-11T11:22:46Z"
+                          updated_at: "2014-12-03T15:08:15Z"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
