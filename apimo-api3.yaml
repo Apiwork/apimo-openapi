@@ -1726,6 +1726,180 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
   # ─────────────────────────────────────────
+  # PROPERTY - Provider
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/properties/{property_id}/provider:
+    put:
+      tags: [Property Media]
+      operationId: updatePropertyProvider
+      summary: Update information related to the publishing of the property
+      description: "Met à jour les informations de publication d'un bien sur un portail partenaire (URL et date de publication)."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: property_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique du bien"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  description: "URL du bien sur le portail ou site web partenaire"
+                  example: "http://www.monportail.fr/bien/12345"
+                date:
+                  type: string
+                  format: date-time
+                  description: "Date de publication du bien (format YYYY-MM-DD HH:MM:SS)"
+                  example: "2024-10-10T10:45:24Z"
+      responses:
+        '200':
+          description: "Informations de publication mises à jour"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    example: "http://..."
+                  date:
+                    type: string
+                    example: "2024-10-10T10:45:24Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─────────────────────────────────────────
+  # PROPERTY - Providers (accès portails)
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/properties/{property_id}/providers:
+    get:
+      tags: [Property Media]
+      operationId: listPropertyProviders
+      summary: Provider list for a specific property
+      description: "Retourne la liste des portails partenaires ayant accès à ce bien."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: property_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: provider
+          in: query
+          required: false
+          schema: { type: integer }
+          description: "Référence unique du portail partenaire"
+        - name: step
+          in: query
+          required: false
+          schema: { type: integer, default: 1, enum: [1, 2] }
+          description: "1 = actif, 2 = inactif"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provider:
+                    type: integer
+                    description: "ID du portail partenaire"
+                    example: 100
+                  step:
+                    type: integer
+                    description: "1 = actif, 2 = inactif"
+                    example: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Property Media]
+      operationId: grantPropertyProvider
+      summary: Grant property access to a provider
+      description: "Donne accès à un ou plusieurs portails partenaires pour publier ce bien."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: property_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: integer
+                  description: "Référence unique du portail partenaire"
+                  example: 100
+                step:
+                  type: integer
+                  description: "1 = actif, 2 = inactif"
+                  default: 1
+                  enum: [1, 2]
+                  example: 1
+      responses:
+        '200':
+          description: "Accès accordé - retourne la liste des providers mis à jour"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  providers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        provider:
+                          type: integer
+                          example: 100
+                        step:
+                          type: integer
+                          example: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─────────────────────────────────────────
   # PROPERTY MEDIA - Photos
   # ─────────────────────────────────────────
   /agencies/{agency_id}/properties/{property_id}/pictures:
@@ -3019,5 +3193,230 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─────────────────────────────────────────
+  # USERS - Historique des actions
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/users/{user_id}/actions:
+    get:
+      tags: [Users]
+      operationId: getUserActions
+      summary: Retrieve actions list of a specific user
+      description: "Retourne l'historique des actions d'un utilisateur/négociateur spécifique."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: user_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'utilisateur/agent"
+        - name: limit
+          in: query
+          schema: { type: integer, default: 1000, maximum: 1000 }
+          description: "Nombre d'enregistrements à retourner (max: 1000)"
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+          description: "Nombre d'enregistrements à ignorer"
+        - name: type
+          in: query
+          schema: { type: integer }
+          description: "Filtrer par type d'action → voir catalog action_type"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      actions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                              description: "ID de l'action (retourné en string)"
+                              example: "19344999"
+                            type:
+                              type: string
+                              description: "Type d'action → voir catalog action_type"
+                              example: "2"
+                            user:
+                              type: string
+                              description: "ID de l'utilisateur (devrait être égal à {user_id})"
+                              example: "1234"
+                            contact:
+                              type: string
+                              nullable: true
+                              description: "ID du contact associé"
+                              example: "8520201"
+                            date:
+                              type: string
+                              format: date
+                              description: "Date de l'action"
+                              example: "2018-09-11"
+                            time_start:
+                              type: string
+                              nullable: true
+                              description: "Heure de début (HH:MM:SS)"
+                              example: "14:43:20"
+                            time_end:
+                              type: string
+                              nullable: true
+                              description: "Heure de fin (HH:MM:SS)"
+                              example: "15:43:00"
+                            subject:
+                              type: string
+                              nullable: true
+                              description: "Sujet de l'action (peut être le sujet d'un email)"
+                              example: "More details on a new property"
+                            content:
+                              type: string
+                              nullable: true
+                              description: "Contenu de l'action (peut être le corps d'un email)"
+                              example: "Hello, …"
+                            properties:
+                              type: object
+                              nullable: true
+                              description: "Bien(s) associé(s) à l'action"
+                              properties:
+                                id:
+                                  type: string
+                                  example: "233030"
+                                report:
+                                  type: string
+                                  nullable: true
+                                price:
+                                  type: string
+                                  example: "2600000"
+                                currency:
+                                  type: string
+                                  example: "EUR"
+                                rating:
+                                  type: string
+                                  nullable: true
+                                assessment:
+                                  type: string
+                                  nullable: true
+                            referral:
+                              type: string
+                              nullable: true
+                              description: "Origine de l'action"
+                            subreferral:
+                              type: string
+                              nullable: true
+                              description: "Sous-origine de l'action"
+                            created_at:
+                              type: string
+                              format: date-time
+                              example: "2018-09-11T14:43:20Z"
+                            updated_at:
+                              type: string
+                              format: date-time
+                              example: "2018-09-11T14:43:20Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # ─────────────────────────────────────────
+  # REQUESTS - Crossings par demande
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/requests/{request_id}/crossings:
+    get:
+      tags: [Requests]
+      operationId: listRequestCrossings
+      summary: Crossing list (matched properties) for a specific request
+      description: |
+        Retourne la liste des biens qui matchent une demande de recherche donnée.
+        Symétrique de `GET /properties/{property_id}/crossings` qui retourne
+        les demandes matchant un bien — ici on part d'une demande pour trouver les biens.
+
+        **Synchronisation incrémentale :**
+        Passez le champ `timestamp` retourné par la dernière réponse pour ne
+        récupérer que les rapprochements mis à jour depuis cette date.
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: request_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de la demande de recherche"
+        - name: limit
+          in: query
+          schema: { type: integer, default: 10000, maximum: 10000 }
+          description: "Nombre d'enregistrements à retourner (max: 10000)"
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+          description: "Nombre d'enregistrements à ignorer"
+        - name: timestamp
+          in: query
+          schema: { type: integer }
+          description: "Retourne les rapprochements mis à jour depuis ce timestamp UNIX"
+        - name: step
+          in: query
+          schema: { type: integer }
+          description: "Filtrer par step (1=À suggérer, 2=Déjà suggéré, 3=Non suggéré)"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      crossings:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            property_id:
+                              type: integer
+                              description: "ID du bien rapproché"
+                              example: 1234567
+                            step_id:
+                              type: integer
+                              description: "1=À suggérer, 2=Déjà suggéré, 3=Non suggéré"
+                              enum: [1, 2, 3]
+                              example: 1
+                            total:
+                              type: string
+                              description: "Score de rapprochement de 0 à 100"
+                              example: "100"
+                            created_at:
+                              type: string
+                              format: date-time
+                              example: "2010-10-08T15:12:02Z"
+                            updated_at:
+                              type: string
+                              format: date-time
+                              example: "2014-04-10T09:37:18Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
