@@ -57,8 +57,9 @@ components:
   # RÉPONSES D'ERREUR RÉUTILISABLES
   # ─────────────────────────────────────────
   responses:
+    # 401
     Unauthorized:
-      description: "401 - Authentification requise. Vérifiez votre provider ID et votre token."
+      description: "Authentification requise. Vérifiez votre provider ID et votre token."
       content:
         application/json:
           schema:
@@ -68,8 +69,9 @@ components:
                 type: string
                 example: "Invalid credentials"
 
+    # 403
     Forbidden:
-      description: "403 - Accès refusé. Vous n'avez pas les droits sur cette ressource."
+      description: "Accès refusé. Vous n'avez pas les droits sur cette ressource."
       content:
         application/json:
           schema:
@@ -78,9 +80,10 @@ components:
               message:
                 type: string
                 example: "Access denied to this agency"
-
+    
+    # 404
     NotFound:
-      description: "404 - Ressource introuvable."
+      description: "Ressource introuvable."
       content:
         application/json:
           schema:
@@ -90,8 +93,9 @@ components:
                 type: string
                 example: "Resource not found"
 
+    # 422
     UnprocessableEntity:
-      description: "422 - Données invalides."
+      description: "Données invalides."
       content:
         application/json:
           schema:
@@ -107,8 +111,9 @@ components:
                   items:
                     type: string
 
+    # 500
     InternalServerError:
-      description: "500 - Erreur interne du serveur Apimo."
+      description: "Erreur interne du serveur."
       content:
         application/json:
           schema:
@@ -664,8 +669,12 @@ components:
             fees:
               type: number
               nullable: true
-              description: "Honoraires"
+              description: "Charges"
               example: 70
+            unit:
+              type: integer
+              nullable: true
+              description: "Price unit → see catalog unit_area"
             period:
               type: integer
               nullable: true
@@ -689,11 +698,7 @@ components:
             commission:
               type: number
               nullable: true
-              description: "Commission client"
-            guarantee:
-              type: number
-              nullable: true
-              description: "Garantie"
+              description: "Honoraires client"
             transfer_tax:
               type: number
               nullable: true
@@ -916,6 +921,16 @@ components:
               id:
                 type: integer
                 example: 66321497
+              type_id:
+                type: integer
+                description: |
+                  Type de photo :
+                  - `1` = Photo
+                  - `2` = Video
+                  - `3` = Youtube
+                  - `4` = Vimeo
+                  - `5` = Panorama/360°
+                example: 1
               rank:
                 type: integer
                 description: "Ordre d'affichage"
