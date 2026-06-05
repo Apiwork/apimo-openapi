@@ -44,7 +44,7 @@ tags:
   - name: Residences
     description: Résidences et programmes neufs
   - name: Users
-    description: Utilisateurs et négociateurs de l'agence
+    description: Utilisateurs et agents immobilier de l'agence
 
 components:
   securitySchemes:
@@ -219,11 +219,11 @@ components:
           description: "Date de dernière mise à jour"
 
     # ─────────────────────────────────────────
-    # SCHÉMA USER (négociateur)
+    # SCHÉMA USER
     # ─────────────────────────────────────────
     User:
       type: object
-      description: "Utilisateur / négociateur de l'agence"
+      description: "Utilisateur / agent immobilier de l'agence"
       properties:
         id:
           type: integer
@@ -376,7 +376,7 @@ components:
         type:
           type: integer
           description: |
-            Type de bien immobilier :
+            Type de bien immobilier → voir catalog property_type :
             - `1` = Appartement
             - `2` = Maison
             - `3` = Terrain
@@ -392,7 +392,7 @@ components:
         subtype:
           type: integer
           description: |
-            Sous-type précis du bien :
+            Sous-type précis du bien → voir catalog property_subtype :
             - `1` = Triplex, `2` = Terrain constructible, `3` = Terrain inconstructible
             - `4` = Penthouse, `5` = Appartement, `6` = Studio
             - `7` = Château, `8` = Commerce, `9` = Duplex, `10` = Manoir
@@ -1090,7 +1090,7 @@ components:
           description: "Catégorie du contact → voir catalog contact_category (ex: particulier, professionnel)"
         user:
           type: integer
-          description: "ID du négociateur responsable du contact (requis)"
+          description: "ID de l'utilisateur responsable du contact (requis)"
           example: 10
         password:
           type: string
@@ -1314,7 +1314,7 @@ components:
           example: "220351"
         user:
           type: string
-          description: "ID du négociateur responsable (retourné en string par l'API)"
+          description: "ID de l'utilisateur responsable (retourné en string par l'API)"
           example: "3896"
         ranking:
           type: integer
@@ -1682,7 +1682,7 @@ paths:
       operationId: listProperties
       summary: Retrieve the properties list
       description: |
-        Retourne la liste paginée des biens d'une agence.
+        Retourne la liste paginée des biens d'une agence (actif par défaut step: 1, status: 1, group: 1,3).
 
         **Pagination classique :**
         Utilisez `limit` et `offset` pour parcourir les résultats.
@@ -3383,7 +3383,7 @@ paths:
       tags: [Users]
       operationId: getUserActions
       summary: Retrieve actions list of a specific user
-      description: "Retourne l'historique des actions d'un utilisateur/négociateur spécifique."
+      description: "Retourne l'historique des actions d'un utilisateur/agent immobilier spécifique."
       parameters:
         - name: agency_id
           in: path
@@ -3394,7 +3394,7 @@ paths:
           in: path
           required: true
           schema: { type: integer }
-          description: "Identifiant unique de l'utilisateur/agent"
+          description: "Identifiant unique de l'utilisateur/agent immobilier"
         - name: limit
           in: query
           schema: { type: integer, default: 1000, maximum: 1000 }

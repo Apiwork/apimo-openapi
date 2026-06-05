@@ -5,9 +5,9 @@ info:
     Complete Apimo API documentation for real estate providers.
     Access agencies, properties, contacts, leads and parameters.
 
-    **Authentication** : HTTP Basic Auth with `provider_id:token`
+    **Authentication**: HTTP Basic Auth with `provider_id:token`
 
-    > ⚠️ **Note on error codes** : the documented HTTP codes (401, 403, 404, 422, 500)
+    > ⚠️ **Note on error codes**: the documented HTTP codes (401, 403, 404, 422, 500)
     > follow REST standard conventions. If in doubt, refer to the logs of your real requests.
   version: "1.0.0"
   contact:
@@ -44,14 +44,14 @@ tags:
   - name: Residences
     description: Residences and new developments
   - name: Users
-    description: Agency users and negotiators
+    description: Agency users and estate agents
 
 components:
   securitySchemes:
     basicAuth:
       type: http
       scheme: basic
-      description: "Basic Auth : provider_id:token"
+      description: "Basic Auth: provider_id:token"
 
   # ─────────────────────────────────────────
   # RÉPONSES D'ERREUR RÉUTILISABLES
@@ -220,11 +220,11 @@ components:
           description: "Last update date"
 
     # ─────────────────────────────────────────
-    # SCHÉMA USER (négociateur)
+    # SCHÉMA USER
     # ─────────────────────────────────────────
     User:
       type: object
-      description: "Agency user / negotiator"
+      description: "Agency user / estate agent"
       properties:
         id:
           type: integer
@@ -377,7 +377,7 @@ components:
         type:
           type: integer
           description: |
-            Type of real estate property:
+            Real estate property type → see catalog property_type:
             - `1` = Apartment
             - `2` = House
             - `3` = Land
@@ -393,34 +393,34 @@ components:
         subtype:
           type: integer
           description: |
-            Sous-type précis du bien :
-            - `1` = Triplex, `2` = Terrain constructible, `3` = Terrain inconstructible
-            - `4` = Penthouse, `5` = Appartement, `6` = Studio
-            - `7` = Château, `8` = Commerce, `9` = Duplex, `10` = Manoir
-            - `11` = Ferme, `12` = Loft, `13` = Maison de village, `14` = Villa
-            - `15` = Appartement villa, `16` = Grange, `17` = Ruine, `18` = Maison
-            - `19` = Propriété, `20` = Ensemble immobilier, `21` = Moulin, `22` = Garage
-            - `23` = Fermette, `24` = Immeuble, `25` = Maison de ville, `26` = Mobile home
-            - `27` = Chaumière, `28` = Chambre, `29` = Hangar, `30` = Mas
-            - `31` = Local, `32` = Chalet, `33` = Local commercial, `34` = Fonds de commerce
-            - `35` = Droit au bail, `36` = Bureau, `37` = Hôtel particulier, `38` = Gérance
-            - `39` = Exploitation agricole, `40` = Cave, `41` = Entrepôt, `42` = Remise
-            - `43` = Parking, `44` = Hôtel, `45` = Haras, `46` = Terrain, `47` = Bastide
-            - `48` = Bastidon, `49` = Entreprise, `50` = Propriété viticole
-            - `51` = Yacht, `52` = Péniche, `53` = Voilier, `54` = Catamaran
-            - `55` = Domaine équestre, `56` = Maison d'hôtes, `57` = Gîte, `58` = Riad
-            - `59` = Box, `60` = Attique, `61` = Arcade, `62` = Boutique, `63` = Atelier
-            - `64` = Shophouse, `65` = Borey, `66` = Condo, `67` = Usine
-            - `68` = Appart'hôtel, `69` = Villa jumelée, `70` = Maison de plain-pied
-            - `71` = Maison jumelée, `72` = Bungalow, `73` = Maison de plage
-            - `74` = Place de port, `77` = Île privée, `78` = Terrain résidentiel
-            - `79` = Terrain commercial, `80` = Lotissement, `81` = Domaine de chasse
-            - `82` = Bateau à moteur, `83` = Pavillon, `84` = Ranch, `85` = Lac
-            - `87` = Atelier artisanal, `88` = Pavillon, `89` = Cellier, `90` = Grenier
-            - `103` = Terrain agricole, `104` = Local et fonds de commerce
-            - `105` = Bâtiment historique, `110` = Maisonette, `111` = Dépendance
-            - `112` = Refuge, `113` = Appartement type maison, `114` = Appartement de plain-pied
-            - `115` = Cabinet, `116` = Maison préfabriquée
+            Real estate property subtype:
+            - `1`= Triplex, `2`= Building land, `3`= Not constructible land,
+            - `4`= Penthouse, `5`= Apartment, `6`= Studio,
+            - `7`= Castle, `8`= Business, `9`= Duplex, `10`= Manor house,
+            - `11`= Farm, `12`= Loft, `13`= Village house, `14`= Villa,
+            - `15`= Apartment villa, `16`= Barn, `17`= Ruin, `18`= House,
+            - `19`= Property, `20`= Housing estate, `21`= Mill, `22`= Carpark,
+            - `23`= Farmhouse, `24`= Building, `25`= Townhouse, `26`= Mobile home,
+            - `27`= Cottage, `28`= Bedroom, `29`= Hangar, `30`= Mas,
+            - `31`= Local, `32`= Chalet, `33`= Retail space, `34`= Business assets,
+            - `35`= Right to the lease, `36`= Office, `37`= Mansion, `38`= Management,
+            - `39`= Agricultural exploitation, `40`= Cellar, `41`= Warehouse, `42`= Woodshed,
+            - `43`= Parking, `44`= Hotel, `45`= Stud farm, `46`= Plot of land, `47`= Bastide,
+            - `48`= Bastidon, `49`= Company, `50`= Vineyard property,
+            - `51`= Motor Yacht, `52`= Narrow boat, `53`= Sailing Yacht, `54`= Catamaran,
+            - `55`= Equestrian estate, `56`= Bed and breakfast, `57`= Gîte, `58`= Riad,
+            - `59`= Box, `60`= Attic, `61`= Arcade, `62`= Retail shop, `63`= Workshop,
+            - `64`= Shophouse, `65`= Borey, `66`= Condo, `67`= Factory,
+            - `68`= Serviced apartment, `69`= Twin Villa, `70`= Single-storey house,
+            - `71`= Semi-detached house, `72`= Bungalow, `73`= Beach house,
+            - `74`= Berth, `77`= Private island, `78`= Residential land,
+            - `79`= Commercial land, `80`= Subdivision, `81`= Game reserve,
+            - `82`= Motorboat, `83`= Detached house, `84`= Ranch, `85`= Lake,
+            - `87`= Craft Workshop, `88`= Pavilion, `89`= Cellar, `90`= Attic,
+            - `103`= Agricultural land, `104`= Local & Business assets,
+            - `105`= Conservation House, `110`= Tiny house, `111`= Outbuilding,
+            - `112`= Mountain hut, `113`= Maisonette apartment, `114`= Ground floor apartment,
+            - `115`= Professional office, 116	Prefab house
           enum:
             [
               1,
@@ -551,7 +551,7 @@ components:
         lot_reference:
           type: string
           nullable: true
-          description: "Lot reference"
+          description: "Plot reference"
         cadastre_reference:
           type: string
           nullable: true
@@ -744,16 +744,16 @@ components:
             fees:
               type: number
               nullable: true
-              description: "Monthly charges"
+              description: "Monthly fees"
               example: 70
             period:
               type: integer
               nullable: true
-              description: "Charge frequency → see catalog property_period"
+              description: "Fee frequency → see catalog property_period"
             lots:
               type: integer
               nullable: true
-              description: "Number of lots"
+              description: "Number of units"
               example: 0
         view:
           type: object
@@ -925,7 +925,7 @@ components:
               type_id:
                 type: integer
                 description: |
-                  Type de photo :
+                  Picture type:
                   - `1` = Photo
                   - `2` = Video
                   - `3` = Youtube
@@ -1294,8 +1294,8 @@ components:
 
     # ─────────────────────────────────────────
     # SCHÉMA REQUEST (demande de recherche)
-    # Source : doc officielle + réponse réelle API
-    # Note : les IDs sont retournés en string par l'API
+    # Source: doc officielle + réponse réelle API
+    # Note: les IDs sont retournés en string par l'API
     # ─────────────────────────────────────────
     Request:
       type: object
@@ -1644,9 +1644,9 @@ paths:
         If greater than `offset + limit`, there are more pages to fetch.
 
         Example to paginate through 2500 agencies with limit=1000:
-        - Page 1 : `?limit=1000&offset=0`
-        - Page 2 : `?limit=1000&offset=1000`
-        - Page 3 : `?limit=1000&offset=2000`
+        - Page 1: `?limit=1000&offset=0`
+        - Page 2: `?limit=1000&offset=1000`
+        - Page 3: `?limit=1000&offset=2000`
       parameters:
         - name: limit
           in: query
@@ -1683,7 +1683,7 @@ paths:
       operationId: listProperties
       summary: Retrieve the properties list
       description: |
-        Retourne la liste paginée des biens d'une agence.
+        Returns the paginated list of a real estate agency's properties (active by default step: 1, status: 1, group: 1,3).
 
         **Classic pagination:**
         Use `limit` and `offset` to paginate through results.
@@ -1691,16 +1691,16 @@ paths:
         If greater than `offset + limit`, there are more pages to fetch.
 
         Example to paginate through 2500 properties with limit=1000:
-        - Page 1 : `?limit=1000&offset=0`
-        - Page 2 : `?limit=1000&offset=1000`
-        - Page 3 : `?limit=1000&offset=2000`
+        - Page 1: `?limit=1000&offset=0`
+        - Page 2: `?limit=1000&offset=1000`
+        - Page 3: `?limit=1000&offset=2000`
 
         **Incremental synchronization (recommended):**
         Pass the `timestamp` field returned by the last response to
         only retrieve properties created or updated since that date.
         Ideal for keeping a local database in sync without reloading everything.
 
-        Exemple : `?timestamp=1712000000`
+        Example: `?timestamp=1712000000`
       parameters:
         - name: agency_id
           in: path
@@ -2363,7 +2363,7 @@ paths:
       description: |
         Returns the paginated list of crossings (requests matching this property).
 
-        **Synchronisation incrémentale :**
+        **Incremental synchronization:**
         Pass the `timestamp` field returned by the last response to
         only retrieve crossings updated since that date.
       parameters:
@@ -3136,7 +3136,7 @@ paths:
         Pass the `timestamp` field returned by the last response to
         only retrieve residences created or updated since that date.
 
-        > ⚠️ **Note on types** : all numeric fields (id, floors, lots,
+        > ⚠️ **Note on types**: all numeric fields (id, floors, lots,
         > longitude, latitude...) are returned as **string** by the real API.
       parameters:
         - name: agency_id
@@ -3526,7 +3526,7 @@ paths:
         Symmetric of `GET /properties/{property_id}/crossings` which returns
         the requests matching a property — here we start from a request to find properties.
 
-        **Synchronisation incrémentale :**
+        **Incremental synchronization:**
         Pass the `timestamp` field returned by the last response to
         only retrieve crossings updated since that date.
       parameters:
