@@ -642,6 +642,32 @@ components:
               type: number
               nullable: true
               description: "Surface pondérée"
+        plot:
+          type: object
+          description: "Surface du terrain"
+          properties:
+            net_floor:
+              type: number
+              description: "Surface de plancher"
+              nullable: true
+              example: 52.12
+            land_type:
+              type: integer
+              description: "ID du type de terrain → voir catalog property_land"
+              nullable: true
+              example: 1
+            width:
+              type: number
+              nullable: true
+              description: "Longueur du terrain"
+            heigth:
+              type: number
+              nullable: true
+              description: "Largeur du terrain"
+            serviced_plot:
+              type: boolean
+              description: "Si viabilisé (eau, électricité, gaz, tout-à-l'égout ...)"
+              example: false
         rooms:
           type: number
           description: "Nombre de pièces (peut être décimal)"
@@ -1066,6 +1092,53 @@ components:
               year:
                 type: integer
                 description: "Année de référence"
+        life_annuity:
+          type: object
+          nullable: true
+          description: "Détail de la rente viagère (viager)"
+          properties:
+            length:
+              type: integer
+              description: "Durée viager (en mois)"
+            occupants:
+              type: array
+              items:
+                type: object
+                properties:
+                  gender:
+                    type: integer
+                    description: "1 = femme, 2 = homme, 3 = neutre"
+                    example: 3
+                  birthday:
+                    type: string
+                    format: date
+                    example: "1980-06-15"
+            market_value:
+              type: number
+              description: "Valeur vénale du bien"
+            contribution:
+              type: number
+              description: "Apport initial"
+            pension:
+              type: number
+              description: "Montant de la rente mensuelle"
+        auction:
+          type: object
+          nullable: true
+          description: "Détail de la vente aux enchères (enchère)"
+          properties:
+            start_at:
+              type: string
+              format: date
+              description: "Date de début de l'enchère"
+            end_at:
+              type: string
+              format: date
+              description: "Date de fin de l'enchère"
+            bid_min:
+              type: number
+              description: "Montant minimum de l'enchère"
+              example: 1000
         created_at:
           type: string
           format: date-time

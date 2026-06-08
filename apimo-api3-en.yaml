@@ -643,6 +643,32 @@ components:
               type: number
               nullable: true
               description: "Weighted area"
+        plot:
+          type: object
+          description: "Plot of land area"
+          properties:
+            net_floor:
+              type: number
+              description: "Net floor area"
+              nullable: true
+              example: 52.12
+            land_type:
+              type: integer
+              description: "Land type ID → see catalog property_land"
+              nullable: true
+              example: 1
+            width:
+              type: number
+              nullable: true
+              description: "Plot length"
+            heigth:
+              type: number
+              nullable: true
+              description: "Plot width"
+            serviced_plot:
+              type: boolean
+              description: "If serviced plot (water, electricity, gas, sewage ...)"
+              example: false
         rooms:
           type: number
           description: "Number of rooms (can be decimal)"
@@ -1067,6 +1093,53 @@ components:
               year:
                 type: integer
                 description: "Reference year"
+        life_annuity:
+          type: object
+          nullable: true
+          description: "Life annuity details"
+          properties:
+            length:
+              type: integer
+              description: "Life annuity length (in months)"
+            occupants:
+              type: array
+              items:
+                type: object
+                properties:
+                  gender:
+                    type: integer
+                    description: "1 = female, 2 = male, 3 = neutral"
+                    example: 3
+                  birthday:
+                    type: string
+                    format: date
+                    example: "1980-06-15"
+            market_value:
+              type: number
+              description: "Market value of the property"
+            contribution:
+              type: number
+              description: "Price contribution"
+            pension:
+              type: number
+              description: "Monthly pension amount"
+        auction:
+          type: object
+          nullable: true
+          description: "Auction details"
+          properties:
+            start_at:
+              type: string
+              format: date
+              description: "Auction start date"
+            end_at:
+              type: string
+              format: date
+              description: "Auction end date"
+            bid_min:
+              type: number
+              description: "Minimum bid amount"
+              example: 1000
         created_at:
           type: string
           format: date-time
