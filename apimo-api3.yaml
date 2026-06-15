@@ -3099,20 +3099,6 @@ paths:
                   type: integer
                   nullable: true
                   description: "ID de l'utilisateur lié au lead"
-                  type: object
-                  nullable: true
-                  description: "Date et utilisateur de clôture du lead"
-                  properties:
-                    date:
-                      type: string
-                      nullable: true
-                      description: "Date de clôture"
-                      example: "2014-11-13 09:07:07"
-                    user:
-                      type: string
-                      nullable: true
-                      description: "ID de l'utilisateur ayant clôturé"
-                      example: "5661"
                 message:
                   type: string
                   nullable: true
@@ -3158,41 +3144,6 @@ paths:
                   nullable: true
                   description: "Devise ISO 4217 du prospect"
                   example: "EUR"
-                  type: object
-                  nullable: true
-                  description: "Critères de recherche du prospect"
-                  properties:
-                    category:
-                      type: integer
-                      nullable: true
-                    area:
-                      type: object
-                      properties:
-                        min: { type: number, nullable: true }
-                        max: { type: number, nullable: true }
-                    room:
-                      type: object
-                      properties:
-                        min: { type: integer, nullable: true }
-                        max: { type: integer, nullable: true }
-                    price:
-                      type: object
-                      properties:
-                        min: { type: number, nullable: true }
-                        max: { type: number, nullable: true }
-                        currency: { type: string, nullable: true }
-                    cities:
-                      type: array
-                      items: { type: object }
-                    locations:
-                      type: array
-                      items: { type: object }
-                    types:
-                      type: array
-                      items: { type: integer }
-                    subtype:
-                      type: integer
-                      nullable: true
                 created_at:
                   type: string
                   format: date-time
