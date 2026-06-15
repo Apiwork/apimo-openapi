@@ -2950,6 +2950,11 @@ paths:
                   type: string
                   description: "Étape du lead → voir catalog lead_step"
                   example: "4"
+                date:
+                  type: string
+                  format: date-time
+                  description: "Date du contact (format YYYY-MM-DD HH:MM:SS)"
+                  example: "2014-12-03T15:08:15Z"
                 start_at:
                   type: string
                   nullable: true
