@@ -3087,10 +3087,6 @@ paths:
                   type: integer
                   nullable: true
                   description: "Type de vue → voir catalog property_view_type"
-                property_location:
-                  type: integer
-                  nullable: true
-                  description: "Localisation du bien → voir catalog property_location"
                 contact:
                   type: integer
                   nullable: true

@@ -2935,6 +2935,7 @@ paths:
           application/json:
             schema:
               type: object
+              description: "Inbound lead (prospect from a portal or form)"
               required: [reference, email, phone, mobile]
               properties:
                 provider:
