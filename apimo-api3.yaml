@@ -1165,7 +1165,6 @@ components:
     Lead:
       type: object
       description: "Lead entrant (prospect venant d'un portail ou formulaire)"
-      required: [reference, email, phone, mobile]
       properties:
         id:
           type: integer
@@ -1487,10 +1486,6 @@ components:
           format: date-time
           description: "Date de dernière mise à jour"
           example: "2014-12-03T15:08:15Z"
-      anyOf:
-        - required: [email]
-        - required: [phone]
-        - required: [mobile]
 
     # ─────────────────────────────────────────
     # SCHÉMA REQUEST (demande de recherche)
@@ -2938,7 +2933,276 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/Lead' }
+            schema:
+              type: object
+              description: "Lead entrant (prospect venant d'un portail ou formulaire)"
+              required: [reference, email, phone, mobile]
+              properties:
+                provider:
+                  type: string
+                  description: "ID du provider source du lead (retourné en string)"
+                  example: "4"
+                type:
+                  type: string
+                  description: "Type de lead → voir catalog lead_type"
+                  example: "1"
+                step:
+                  type: string
+                  description: "Étape du lead → voir catalog lead_step"
+                  example: "4"
+                start_at:
+                  type: string
+                  nullable: true
+                  description: "Critère de date de début de location (format MySQL)"
+                end_at:
+                  type: string
+                  nullable: true
+                  description: "Critère de date de fin de location (format MySQL)"
+                reference:
+                  type: string
+                  description: "Votre référence unique pour ce lead"
+                  example: "194D1DDEDdE"
+                lastname:
+                  type: string
+                  nullable: true
+                  description: "Nom du prospect"
+                  example: "DUPONT"
+                firstname:
+                  type: string
+                  nullable: true
+                  description: "Prénom du prospect"
+                  example: "Jean"
+                email:
+                  type: string
+                  format: email
+                  nullable: true
+                  description: "Adresse e-mail du prospect"
+                  example: "user@example.com"
+                phone:
+                  type: string
+                  nullable: true
+                  description: "Téléphone du prospect"
+                fax:
+                  type: string
+                  nullable: true
+                  description: "Fax du prospect"
+                mobile:
+                  type: string
+                  nullable: true
+                  description: "Mobile du prospect"
+                method:
+                  type: string
+                  nullable: true
+                  description: "Méthode de contact"
+                language:
+                  type: string
+                  description: "Code langue ISO 639-1 du prospect"
+                  example: "fr"
+                country:
+                  type: string
+                  description: "Code pays ISO 3166-1 alpha-2 du prospect"
+                  example: "FR"
+                title:
+                  type: integer
+                  nullable: true
+                  description: "Civilité du prospect → voir catalog contact_title"
+                address:
+                  type: string
+                  nullable: true
+                  description: "Adresse postale du prospect"
+                address_more:
+                  type: string
+                  nullable: true
+                  description: "Complément d'adresse du prospect"
+                zipcode:
+                  type: string
+                  nullable: true
+                  description: "Code postal du prospect"
+                city:
+                  type: string
+                  nullable: true
+                  description: "Ville du prospect"
+                referral:
+                  type: string
+                  nullable: true
+                  description: "Origine du lead → voir catalog origine"
+                subreferral:
+                  type: string
+                  nullable: true
+                  description: "Sous-origine du lead"
+                recipient_lastname:
+                  type: string
+                  nullable: true
+                  description: "Nom du destinataire (fonction 'envoyer à un ami')"
+                recipient_firstname:
+                  type: string
+                  nullable: true
+                  description: "Prénom du destinataire (fonction 'envoyer à un ami')"
+                recipient_email:
+                  type: string
+                  format: email
+                  nullable: true
+                  description: "Email du destinataire (fonction 'envoyer à un ami')"
+                property_reference:
+                  type: string
+                  nullable: true
+                  description: "Référence du bien"
+                property_address:
+                  type: string
+                  nullable: true
+                  description: "Adresse du bien"
+                property_address_more:
+                  type: string
+                  nullable: true
+                  description: "Complément d'adresse du bien"
+                property_zipcode:
+                  type: string
+                  nullable: true
+                  description: "Code postal du bien"
+                property_city:
+                  type: string
+                  nullable: true
+                  description: "Ville du bien"
+                property_country:
+                  type: string
+                  nullable: true
+                  description: "Pays du bien (ISO 3166-1 alpha-2)"
+                property_category:
+                  type: integer
+                  nullable: true
+                  description: "Catégorie du bien → voir catalog property_category"
+                property_types:
+                  type: string
+                  nullable: true
+                  description: "Types du bien séparés par virgule (ex: '1,2,3') → voir catalog property_type"
+                property_subtype:
+                  type: string
+                  nullable: true
+                  description: "Sous-type du bien → voir catalog property_subtype"
+                property_view_landscape:
+                  type: integer
+                  nullable: true
+                  description: "Vue du bien → voir catalog property_view_landscape"
+                property_view_type:
+                  type: integer
+                  nullable: true
+                  description: "Type de vue → voir catalog property_view_type"
+                property_location:
+                  type: integer
+                  nullable: true
+                  description: "Localisation du bien → voir catalog property_location"
+                contact:
+                  type: integer
+                  nullable: true
+                  description: "ID du contact lié au lead"
+                user:
+                  type: integer
+                  nullable: true
+                  description: "ID de l'utilisateur lié au lead"
+                  type: object
+                  nullable: true
+                  description: "Date et utilisateur de clôture du lead"
+                  properties:
+                    date:
+                      type: string
+                      nullable: true
+                      description: "Date de clôture"
+                      example: "2014-11-13 09:07:07"
+                    user:
+                      type: string
+                      nullable: true
+                      description: "ID de l'utilisateur ayant clôturé"
+                      example: "5661"
+                message:
+                  type: string
+                  nullable: true
+                  description: "Message libre du prospect"
+                area_min:
+                  type: number
+                  nullable: true
+                  description: "Surface minimum recherchée"
+                area_max:
+                  type: number
+                  nullable: true
+                  description: "Surface maximum recherchée"
+                area_unit:
+                  type: integer
+                  nullable: true
+                  description: "Unité de surface → voir catalog unit_area"
+                room_min:
+                  type: integer
+                  nullable: true
+                  description: "Nombre de pièces minimum"
+                room_max:
+                  type: integer
+                  nullable: true
+                  description: "Nombre de pièces maximum"
+                bedroom_min:
+                  type: integer
+                  nullable: true
+                  description: "Nombre de chambres minimum"
+                bedroom_max:
+                  type: integer
+                  nullable: true
+                  description: "Nombre de chambres maximum"
+                price_min:
+                  type: number
+                  nullable: true
+                  description: "Prix minimum recherché"
+                price_max:
+                  type: number
+                  nullable: true
+                  description: "Prix maximum recherché"
+                currency:
+                  type: string
+                  nullable: true
+                  description: "Devise ISO 4217 du prospect"
+                  example: "EUR"
+                  type: object
+                  nullable: true
+                  description: "Critères de recherche du prospect"
+                  properties:
+                    category:
+                      type: integer
+                      nullable: true
+                    area:
+                      type: object
+                      properties:
+                        min: { type: number, nullable: true }
+                        max: { type: number, nullable: true }
+                    room:
+                      type: object
+                      properties:
+                        min: { type: integer, nullable: true }
+                        max: { type: integer, nullable: true }
+                    price:
+                      type: object
+                      properties:
+                        min: { type: number, nullable: true }
+                        max: { type: number, nullable: true }
+                        currency: { type: string, nullable: true }
+                    cities:
+                      type: array
+                      items: { type: object }
+                    locations:
+                      type: array
+                      items: { type: object }
+                    types:
+                      type: array
+                      items: { type: integer }
+                    subtype:
+                      type: integer
+                      nullable: true
+                created_at:
+                  type: string
+                  format: date-time
+                  description: "Date de création"
+                  example: "2014-11-11T11:22:46Z"
+                updated_at:
+                  type: string
+                  format: date-time
+                  description: "Date de dernière mise à jour"
+                  example: "2014-12-03T15:08:15Z"
       responses:
         '200':
           description: "Lead créé - retourne l'ID et les dates"
