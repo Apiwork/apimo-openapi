@@ -1165,6 +1165,7 @@ components:
     Lead:
       type: object
       description: "Incoming lead (prospect from a portal or form)"
+      required: [reference, email, phone, mobile]
       properties:
         id:
           type: integer
@@ -1486,6 +1487,10 @@ components:
           format: date-time
           description: "Last update date"
           example: "2014-12-03T15:08:15Z"
+      anyOf:
+        - required: [email]
+        - required: [phone]
+        - required: [mobile]
 
     # ─────────────────────────────────────────
     # SCHÉMA REQUEST (demande de recherche)
@@ -2923,6 +2928,7 @@ paths:
       tags: [Leads]
       operationId: createLead
       summary: Create a new lead
+      description: "**At least one of the following fields must be filled in: `email`, `phone`, or `mobile`.**"
       parameters:
         - name: agency_id
           in: path
