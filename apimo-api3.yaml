@@ -3140,6 +3140,11 @@ paths:
                   nullable: true
                   description: "Devise ISO 4217 du prospect"
                   example: "EUR"
+                locations:
+                  type: array
+                  nullable: true
+                  description: "Tableau de localisation (ID ou noms)"
+                  example: '["Cannes","Nice","Paris"]'
                 created_at:
                   type: string
                   format: date-time

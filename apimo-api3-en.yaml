@@ -3140,6 +3140,11 @@ paths:
                   nullable: true
                   description: "Prospect currency ISO 4217"
                   example: "EUR"
+                locations:
+                  type: array
+                  nullable: true
+                  description: "Array of location IDs or names"
+                  example: '["Cannes","Nice","Paris"]'
                 created_at:
                   type: string
                   format: date-time
