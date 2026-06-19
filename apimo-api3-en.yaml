@@ -212,6 +212,10 @@ components:
           type: string
           format: date-time
           description: "Last update date"
+        subscription:
+          type: string
+          nullable: true
+          description: "Agency subscription type. **Private field**: only visible if you have the appropriate access rights"
 
     # ─────────────────────────────────────────
     # SCHÉMA USER (négociateur)
@@ -262,6 +266,7 @@ components:
           type: string
           format: date
           nullable: true
+          description: "User's date of birth. **Private field**: only visible if you have the appropriate access rights"
         timezone:
           type: string
           example: "Europe/Paris"
@@ -278,11 +283,11 @@ components:
           format: date-time
 
     # ─────────────────────────────────────────
-    # SCHÉMA PROPERTY (mis à jour depuis la doc officielle)
+    # SCHÉMA PROPERTY (GET uniquement - source doc officielle)
     # ─────────────────────────────────────────
     Property:
       type: object
-      description: "Complete property object - source: official Apimo documentation"
+      description: "Complete property object returned for reading (GET) - source: official Apimo documentation"
       properties:
         id:
           type: integer
@@ -297,7 +302,9 @@ components:
           description: "ID of the agency owning the property"
           example: 182
         user:
-          $ref: '#/components/schemas/User'
+          allOf:
+            - $ref: '#/components/schemas/User'
+          description: "Responsible negotiator"
         step:
           type: integer
           description: |
@@ -584,7 +591,7 @@ components:
               description: "Security deposit"
             currency:
               type: string
-              description: "Devise ISO 4217"
+              description: "Currency ISO 4217"
               example: "EUR"
             commission:
               type: number
@@ -593,7 +600,7 @@ components:
             guarantee:
               type: number
               nullable: true
-              description: "Garantie"
+              description: "Guarantee"
             transfer_tax:
               type: number
               nullable: true
@@ -623,6 +630,77 @@ components:
               format: date
               nullable: true
               description: "Sale signing date"
+            commission_owner:
+              type: number
+              nullable: true
+              description: "Commission for the owner. **Private field**: only visible if you have the appropriate access rights"
+            commission_customer:
+              type: number
+              nullable: true
+              description: "Commission for the customer. **Private field**: only visible if you have the appropriate access rights"
+            net_seller:
+              type: number
+              nullable: true
+              description: "Net seller amount after deduction of commissions. **Private field**: only visible if you have the appropriate access rights"
+            estimation:
+              type: object
+              nullable: true
+              description: "Price estimation. **Private field**: only visible if you have the appropriate access rights"
+              properties:
+                min:
+                  type: number
+                  nullable: true
+                  description: "Minimum estimation"
+                max:
+                  type: number
+                  nullable: true
+                  description: "Maximum estimation"
+            negotiable:
+              type: number
+              nullable: true
+              description: "Negotiable price value. **Private field**: only visible if you have the appropriate access rights"
+        owner:
+          type: integer
+          nullable: true
+          description: "Owner reference (linked to contacts endpoint). **Private field**: only visible if you have the appropriate access rights"
+        visit:
+          type: object
+          nullable: true
+          description: "Visit information. **Private field**: only visible if you have the appropriate access rights"
+          properties:
+            contact:
+              type: integer
+              nullable: true
+              description: "Contact for visiting (reference linked to contacts endpoint)"
+            comment:
+              type: string
+              nullable: true
+              description: "Visit instructions"
+        exchanges:
+          type: array
+          description: "List of the portals to publish. **Private field**: only visible if you have the appropriate access rights"
+          items:
+            type: object
+        status_comment:
+          type: string
+          nullable: true
+          description: "Status description. **Private field**: only visible if you have the appropriate access rights"
+        logs:
+          type: array
+          description: "Modification history. **Private field**: only visible if you have the appropriate access rights"
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: "Field updated"
+              value:
+                type: string
+                description: "New value"
+              date:
+                type: string
+                format: date-time
+                description: "Date of the update"
         residence:
           type: object
           nullable: true
@@ -809,7 +887,7 @@ components:
           description: "Agency customized tags"
         pictures:
           type: array
-          description: "Property photos"
+          description: "Property photos. To add a photo, use POST /properties/{property_id}/pictures"
           items:
             type: object
             properties:
@@ -841,7 +919,7 @@ components:
                     comment: { type: string }
         medias:
           type: array
-          description: "Property media (videos, virtual tours...)"
+          description: "Property media (videos, virtual tours...). To add a media, use POST /properties/{property_id}/medias"
           items:
             type: object
             properties:
@@ -853,7 +931,7 @@ components:
                 description: "Media content or link"
         comments:
           type: array
-          description: "Multilingual descriptions of the property"
+          description: "Multilingual descriptions of the property. To add/update a description, use POST /properties/{property_id}/comments"
           items:
             type: object
             properties:
@@ -951,6 +1029,14 @@ components:
               year:
                 type: integer
                 description: "Reference year"
+        filling_rate:
+          type: number
+          nullable: true
+          description: "Filling rate. **Private field**: only visible if you have the appropriate access rights"
+        private_comment:
+          type: string
+          nullable: true
+          description: "Private description (not published). **Private field**: only visible if you have the appropriate access rights"
         created_at:
           type: string
           format: date-time
@@ -962,20 +1048,445 @@ components:
           description: "Last update date. Format returned by the API: 'YYYY-MM-DD HH:MM:SS'"
           example: "2016-04-12T22:30:45Z"
 
+    # ─────────────────────────────────────────
+    # SCHÉMA PROPERTYINPUT (POST/PUT - exactement les champs de la doc officielle)
+    # ─────────────────────────────────────────
+    PropertyInput:
+      type: object
+      required: [reference]
+      description: "Request body to create/update a property (POST/PUT). Contains ONLY the fields accepted for writing according to the official Apimo documentation — distinct from the Property schema used for reading (GET)."
+      properties:
+        reference:
+          type: string
+          description: "Your unique identifier for this property. **Required on creation (POST)**"
+          example: "24367"
+        user:
+          type: integer
+          description: "ID of the user. **Required on creation (POST)**"
+          example: 10
+        step:
+          type: integer
+          description: "Main step (in progress, on hold...) → see catalog property_step"
+          example: 1
+        status:
+          type: integer
+          description: "Property status (sub-category of step) → see catalog property_status"
+          example: 1
+        group:
+          type: integer
+          description: "Database group → see catalog property_group"
+          example: 1
+        parent:
+          type: integer
+          nullable: true
+          description: "Parent property ID (e.g. apartment in a new development)"
+        ranking:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: "Property rating from 1 to 5"
+        category:
+          type: integer
+          description: "Property category (sale, rental...) → see catalog property_category"
+          example: 2
+        subcategory:
+          type: integer
+          description: "Property sub-category → see catalog property_subcategory"
+        name:
+          type: string
+          nullable: true
+          description: "Property name"
+        type:
+          type: integer
+          description: "Property type (apartment, house...) → see catalog property_type"
+          example: 1
+        subtype:
+          type: integer
+          description: "Property subtype (studio, villa...) → see catalog property_subtype"
+        agreement:
+          type: object
+          description: "Mandate information"
+          properties:
+            type:
+              type: integer
+              description: "Mandate type → see catalog property_agreement"
+            reference:
+              type: string
+              description: "Human-readable mandate reference"
+            start_at:
+              type: string
+              format: date
+              description: "Mandate start date"
+            end_at:
+              type: string
+              format: date
+              description: "Mandate end date"
+        publish_address:
+          type: boolean
+          description: "Permission to publish the address details"
+        address:
+          type: string
+          nullable: true
+          description: "Address, street name"
+        address_more:
+          type: string
+          nullable: true
+          description: "Additional address details"
+        city:
+          type: string
+          description: "Unique ID of the city - or - name of the city"
+          example: "Nice"
+        zipcode:
+          type: string
+          description: "Postal code du bien"
+          example: "06100"
+        district:
+          type: string
+          nullable: true
+          description: "Unique ID of the district - or - name of the district"
+        country:
+          type: string
+          description: "ISO 3166-1 alpha-2 country code"
+          example: "FR"
+        longitude:
+          type: number
+          format: float
+          description: "Longitude GPS"
+        latitude:
+          type: number
+          format: float
+          description: "Latitude GPS"
+        area:
+          type: object
+          description: "Property area"
+          properties:
+            unit:
+              type: integer
+              description: "Area unit ID → see catalog unit_area"
+            value:
+              type: number
+              description: "Decimal value of the area"
+            total:
+              type: number
+              nullable: true
+              description: "Total area (must be greater than value)"
+            weighted:
+              type: number
+              nullable: true
+              description: "Weighted area"
+        rooms:
+          type: number
+          description: "Number of rooms (can be decimal depending on the country)"
+        sleeps:
+          type: integer
+          nullable: true
+          description: "Number of sleeping places"
+        price:
+          type: object
+          description: "Property price"
+          properties:
+            value:
+              type: number
+              description: "Value of the price"
+            max:
+              type: number
+              nullable: true
+              description: "Max value of the price"
+            fees:
+              type: number
+              nullable: true
+              description: "Value of the rental fees"
+            unit:
+              type: integer
+              description: "Area unit ID → see catalog unit_area"
+            period:
+              type: integer
+              nullable: true
+              description: "Rental frequency → see catalog property_period"
+            hide:
+              type: boolean
+              description: "Hide the price"
+            inventory:
+              type: number
+              nullable: true
+              description: "Inventory fees (in case of rental)"
+            deposit:
+              type: number
+              nullable: true
+              description: "Security deposit pour le client"
+            currency:
+              type: string
+              description: "Currency ISO 4217"
+              example: "EUR"
+            commission_owner:
+              type: number
+              nullable: true
+              description: "Commission for the owner"
+            commission_customer:
+              type: number
+              nullable: true
+              description: "Commission for the customer"
+            contribution:
+              type: number
+              nullable: true
+              description: "Value of the initial contribution (life annuity)"
+            pension:
+              type: number
+              nullable: true
+              description: "Value of the pension (life annuity)"
+            tenant:
+              type: number
+              nullable: true
+              description: "Value of the current rental"
+            sold:
+              type: number
+              nullable: true
+              description: "Final price in case of sale"
+            sold_at:
+              type: string
+              format: date
+              nullable: true
+              description: "Date of the contract in case of sale"
+            estimation:
+              type: object
+              nullable: true
+              description: "Price estimation"
+              properties:
+                min:
+                  type: number
+                  nullable: true
+                  description: "Minimum estimation"
+                max:
+                  type: number
+                  nullable: true
+                  description: "Maximum estimation"
+            negotiable:
+              type: number
+              nullable: true
+              description: "Negotiable price value"
+        owner:
+          type: integer
+          nullable: true
+          description: "Unique ID of the contact (owner)"
+        view:
+          type: object
+          nullable: true
+          properties:
+            type:
+              type: integer
+              description: "View type → see catalog property_view_type"
+            landscape:
+              type: array
+              items: { type: integer }
+              description: "Array of landscapes → see catalog property_view_landscape"
+        construction:
+          type: object
+          nullable: true
+          properties:
+            method:
+              type: array
+              items: { type: integer }
+              description: "Array of construction methods → see catalog property_construction_method"
+            construction_year:
+              type: integer
+              nullable: true
+              description: "Construction year"
+            renovation_year:
+              type: integer
+              nullable: true
+              description: "Renovation year"
+        floor:
+          type: object
+          nullable: true
+          properties:
+            type:
+              type: integer
+              description: "Floor type → see catalog property_floor"
+            levels:
+              type: integer
+              nullable: true
+              description: "Number of levels of the property in the building"
+            floors:
+              type: integer
+              nullable: true
+              description: "Number of floors in the building"
+        heating:
+          type: object
+          nullable: true
+          properties:
+            device:
+              type: integer
+              nullable: true
+              description: "Heating device → see catalog property_heating_device"
+            access:
+              type: integer
+              description: "Heating access → see catalog property_heating_access"
+            type:
+              type: integer
+              description: "Heating type → see catalog property_heating_type"
+        water:
+          type: object
+          nullable: true
+          properties:
+            hot_device:
+              type: integer
+              nullable: true
+              description: "Hot water device → see catalog property_hot_water_device"
+            hot_access:
+              type: integer
+              nullable: true
+              description: "Hot water access → see catalog property_hot_water_access"
+            waste:
+              type: integer
+              nullable: true
+              description: "Waste water type → see catalog property_waste_water"
+        condition:
+          type: integer
+          nullable: true
+          description: "Property condition → see catalog property_condition"
+        standing:
+          type: integer
+          nullable: true
+          description: "Property standing (high standard, luxury) → see catalog property_standing"
+        facades:
+          type: integer
+          nullable: true
+          description: "Number of facades du bien"
+        availability:
+          type: integer
+          nullable: true
+          description: "Property availability → see catalog property_availability"
+        available_at:
+          type: string
+          format: date
+          nullable: true
+          description: "Availability date (when the rental is free)"
+        delivered_at:
+          type: string
+          format: date
+          nullable: true
+          description: "Delivery date (for new construction)"
+        orientations:
+          type: array
+          items: { type: integer }
+          description: "Array of orientations → see catalog property_orientation"
+        services:
+          type: array
+          items: { type: integer }
+          description: "Array of services → see catalog property_service"
+        proximities:
+          type: array
+          items: { type: integer }
+          description: "Array of proximities → see catalog property_proximity"
+        activities:
+          type: array
+          items: { type: integer }
+          description: "Array of activities → see catalog property_activity"
+        tags:
+          type: array
+          items: { type: integer }
+          description: "Array of tags → see catalog tags"
+        tags_customized:
+          type: array
+          items: { type: string }
+          description: "Array of customized tags (different for each agency)"
+        areas:
+          type: array
+          description: "Room and area details"
+          items:
+            type: object
+            properties:
+              type:
+                type: integer
+                description: "Room type → see catalog property_areas"
+              number:
+                type: integer
+                description: "Quantity of this room/area"
+              area:
+                type: number
+                nullable: true
+                description: "Area of this room/area"
+              flooring:
+                type: integer
+                nullable: true
+                description: "Flooring type → see catalog property_flooring"
+              ceiling_height:
+                type: number
+                nullable: true
+                description: "Ceiling height of this room/area"
+              floor:
+                type: object
+                nullable: true
+                properties:
+                  type:
+                    type: integer
+                    description: "Floor type → see catalog property_floor"
+                  value:
+                    type: integer
+                    nullable: true
+                    description: "Value of the floor (0=ground, 1=first...)"
+              orientations:
+                type: array
+                items: { type: integer }
+                description: "Array of orientations → see catalog property_orientation"
+              comments:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    language:
+                      type: string
+                      description: "ISO 639-1 language code"
+                    comment:
+                      type: string
+                      description: "Comment of this room/area"
+        regulations:
+          type: array
+          description: "Diagnostics and regulations"
+          items:
+            type: object
+            properties:
+              type:
+                type: integer
+                description: "Type of regulation, diagnostic or legal specification → see catalog property_regulation"
+              value:
+                type: string
+                nullable: true
+                description: "Value of this regulation"
+              date:
+                type: string
+                format: date
+                nullable: true
+                description: "Date of the regulation"
+        url:
+          type: string
+          format: uri
+          nullable: true
+          description: "Dedicated property website"
+        filling_rate:
+          type: number
+          nullable: true
+          description: "Filling rate"
+        private_comment:
+          type: string
+          nullable: true
+          description: "Private description"
+
     Contact:
       type: object
+      required: [category, user]
       description: "Agency client contact (individual or professional)"
       properties:
         id:
           type: integer
-          description: "Unique ID of the contact"
+          description: "Identifiant unique du contact"
           example: 3021944
         category:
           type: integer
-          description: "Contact category → see catalog contact_category (e.g. individual, professional)"
+          description: "Contact category → see catalog contact_category (e.g. individual, professional). **Required on creation (POST)**"
         user:
           type: integer
-          description: "ID of the responsible negotiator (required)"
+          description: "ID of the responsible negotiator. **Required on creation (POST)**"
           example: 10
         password:
           type: string
@@ -996,12 +1507,12 @@ components:
           nullable: true
         lastname:
           type: string
-          description: "Last name (required if company not provided)"
+          description: "Last name. **Required on creation (POST) if company not provided**"
           example: "Dupont"
           nullable: true
         company:
           type: string
-          description: "Company name (required if lastname not provided)"
+          description: "Company name. **Required on creation (POST) if lastname not provided**"
           nullable: true
         vat_number:
           type: string
@@ -1164,6 +1675,7 @@ components:
 
     Lead:
       type: object
+      required: [reference, type]
       description: "Incoming lead (prospect from a portal or form)"
       properties:
         id:
@@ -1184,7 +1696,7 @@ components:
           example: "101"
         type:
           type: string
-          description: "Lead type → see catalog lead_type"
+          description: "Lead type → see catalog lead_type. **Required on creation (POST)**"
           example: "1"
         step:
           type: string
@@ -1205,7 +1717,7 @@ components:
           description: "Rental end date criteria (MySQL format)"
         reference:
           type: string
-          description: "Your own unique reference for this lead"
+          description: "Your own unique reference for this lead. **Required on creation (POST)**"
           example: "194D1DDEDdE"
         lastname:
           type: string
@@ -1221,7 +1733,7 @@ components:
           type: string
           format: email
           nullable: true
-          description: "Prospect email address"
+          description: "Email address du prospect"
           example: "user@example.com"
         phone:
           type: string
@@ -1241,11 +1753,11 @@ components:
           description: "Contact method"
         language:
           type: string
-          description: "Prospect ISO 639-1 language code"
+          description: "ISO 639-1 language code du prospect"
           example: "fr"
         country:
           type: string
-          description: "Prospect ISO 3166-1 alpha-2 country code"
+          description: "ISO 3166-1 alpha-2 country code du prospect"
           example: "FR"
         title:
           type: integer
@@ -1254,15 +1766,15 @@ components:
         address:
           type: string
           nullable: true
-          description: "Prospect postal address"
+          description: "Postal address du prospect"
         address_more:
           type: string
           nullable: true
-          description: "Prospect additional address details"
+          description: "Additional address details du prospect"
         zipcode:
           type: string
           nullable: true
-          description: "Prospect postal code"
+          description: "Postal code du prospect"
         city:
           type: string
           nullable: true
@@ -1303,11 +1815,11 @@ components:
         property_address_more:
           type: string
           nullable: true
-          description: "Property additional address details"
+          description: "Additional address details du bien"
         property_zipcode:
           type: string
           nullable: true
-          description: "Property postal code"
+          description: "Postal code du bien"
         property_city:
           type: string
           nullable: true
@@ -1335,7 +1847,7 @@ components:
         property_view_type:
           type: integer
           nullable: true
-          description: "Property view type → see catalog property_view_type"
+          description: "View type → see catalog property_view_type"
         property_location:
           type: integer
           nullable: true
@@ -1422,11 +1934,11 @@ components:
         bedroom_min:
           type: integer
           nullable: true
-          description: "Minimum number of bedrooms"
+          description: "Number of bedrooms minimum"
         bedroom_max:
           type: integer
           nullable: true
-          description: "Maximum number of bedrooms"
+          description: "Number of bedrooms maximum"
         price_min:
           type: number
           nullable: true
@@ -1438,7 +1950,7 @@ components:
         currency:
           type: string
           nullable: true
-          description: "Prospect currency ISO 4217"
+          description: "Currency ISO 4217 du prospect"
           example: "EUR"
         criteria:
           type: object
@@ -1494,6 +2006,7 @@ components:
     # ─────────────────────────────────────────
     Request:
       type: object
+      required: [contact, user, category, country]
       description: "Contact search request"
       properties:
         id:
@@ -1506,11 +2019,11 @@ components:
           example: false
         contact:
           type: string
-          description: "Associated contact ID (returned as string by the API)"
+          description: "Associated contact ID (returned as string by the API). **Required on creation (POST)**"
           example: "220351"
         user:
           type: string
-          description: "Responsible negotiator ID (returned as string by the API)"
+          description: "Responsible negotiator ID (returned as string by the API). **Required on creation (POST)**"
           example: "3896"
         ranking:
           type: integer
@@ -1544,7 +2057,7 @@ components:
               description: "Date of the last emailing"
         category:
           type: string
-          description: "Searched property category → see catalog property_category (e.g. '1'=Sale, '2'=Rental)"
+          description: "Searched property category → see catalog property_category (e.g. '1'=Sale, '2'=Rental). **Required on creation (POST)**"
           example: "1"
         subcategory:
           type: string
@@ -1570,7 +2083,7 @@ components:
           description: "Search sub-origin"
         country:
           type: string
-          description: "ISO 3166-1 alpha-2 country code"
+          description: "ISO 3166-1 alpha-2 country code. **Required on creation (POST)**"
           example: "FR"
         locations:
           type: array
@@ -1684,7 +2197,7 @@ components:
               example: "400000"
             currency:
               type: string
-              description: "Devise ISO 4217"
+              description: "Currency ISO 4217"
               example: "EUR"
         floor:
           type: object
@@ -1896,7 +2409,7 @@ paths:
         only retrieve properties created or updated since that date.
         Ideal for keeping a local database in sync without reloading everything.
 
-        Exemple : `?timestamp=1712000000`
+        Example: `?timestamp=1712000000`
       parameters:
         - name: agency_id
           in: path
@@ -1962,7 +2475,10 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/Property' }
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/PropertyInput'
+                - required: [reference, user]
       responses:
         '200':
           description: "Property created - returns ID and dates"
@@ -2009,7 +2525,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/Property' }
+            schema: { $ref: '#/components/schemas/PropertyInput' }
       responses:
         '200':
           description: "Property updated"
@@ -2043,8 +2559,8 @@ paths:
   # ─────────────────────────────────────────
   /agencies/{agency_id}/properties/{property_id}/provider:
     put:
-      tags: [Property Provider]
       operationId: updatePropertyProvider
+      tags: [Property Provider]
       summary: Update information related to the publishing of the property
       description: "Updates the publishing information of a property on a partner portal (URL and publication date)."
       parameters:
@@ -2105,8 +2621,8 @@ paths:
   # ─────────────────────────────────────────
   /agencies/{agency_id}/properties/{property_id}/providers:
     get:
-      tags: [Property Provider]
       operationId: listPropertyProviders
+      tags: [Property Provider]
       summary: Provider list for a specific property
       description: "Returns the list of partner portals that have access to this property."
       parameters:
@@ -2154,8 +2670,8 @@ paths:
           $ref: '#/components/responses/InternalServerError'
 
     post:
-      tags: [Property Provider]
       operationId: grantPropertyProvider
+      tags: [Property Provider]
       summary: Grant property access to a provider
       description: "Grants one or more partner portals access to publish this property."
       parameters:
@@ -2735,7 +3251,7 @@ paths:
           in: path
           required: true
           schema: { type: integer }
-          description: "Unique ID of the contact"
+          description: "Identifiant unique du contact"
         - name: user_id
           in: query
           required: false
@@ -2774,7 +3290,7 @@ paths:
           in: path
           required: true
           schema: { type: integer }
-          description: "Unique ID of the contact"
+          description: "Identifiant unique du contact"
         - name: year
           in: path
           required: true
@@ -3282,6 +3798,58 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /agencies/{agency_id}/requests/{request_id}:
+    put:
+      tags: [Requests]
+      operationId: updateRequest
+      summary: Update a request
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Unique ID of the agency"
+        - name: request_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Unique ID of the request"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Request' }
+      responses:
+        '200':
+          description: "Request updated - returns ID and dates"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "ID of the updated request"
+                    example: 1004656
+                  created_at:
+                    type: string
+                    format: date-time
+                    example: "2020-06-02T08:40:13Z"
+                  updated_at:
+                    type: string
+                    format: date-time
+                    example: "2020-06-02T08:40:13Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # ─────────────────────────────────────────
   # ACTIONS
   # ─────────────────────────────────────────
@@ -3303,15 +3871,15 @@ paths:
           application/json:
             schema:
               type: object
-              required: [user, date]
+              required: [user, type, date]
               properties:
                 user:
                   type: integer
-                  description: "ID of the responsible user (required)"
+                  description: "ID of the responsible user. **Required on creation (POST)**"
                   example: 3896
                 type:
                   type: integer
-                  description: "Action type → see catalog action_type"
+                  description: "Action type → see catalog action_type. **Required on creation (POST)**"
                   nullable: true
                 method:
                   type: integer
@@ -3320,7 +3888,7 @@ paths:
                 date:
                   type: string
                   format: date
-                  description: "Action date (format YYYY-MM-DD) (required)"
+                  description: "Action date (format YYYY-MM-DD). **Required on creation (POST)**"
                   example: "2024-06-15"
                 start_at:
                   type: string
@@ -3473,7 +4041,7 @@ paths:
                             commission_owner:
                               type: number
                               nullable: true
-                              description: "Owner commission"
+                              description: "Commission for the owner"
                             commission_customer:
                               type: number
                               nullable: true
@@ -3694,7 +4262,7 @@ paths:
                             floors:
                               type: string
                               nullable: true
-                              description: "Number of building floors (returned as string)"
+                              description: "Number of floors in the building (returned as string)"
                               example: "4"
                             lots:
                               type: string
@@ -3871,7 +4439,7 @@ paths:
                               example: "19344999"
                             type:
                               type: string
-                              description: "Action type → see catalog action_type"
+                              description: "Type d'action → voir catalog action_type"
                               example: "2"
                             user:
                               type: string
