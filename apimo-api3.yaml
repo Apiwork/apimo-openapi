@@ -3229,6 +3229,51 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /agencies/{agency_id}/contacts/{contact_id}:
+    put:
+      tags: [Contacts]
+      operationId: updateContact
+      summary: Update a contact
+      description: "Met à jour un contact existant (particulier ou professionnel)."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: contact_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique du contact à mettre à jour"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Contact' }
+      responses:
+        '200':
+          description: "Contact mis à jour - retourne uniquement l'ID"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: "ID du contact mis à jour (retourné en string par l'API)"
+                    example: "3021944"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   # ─────────────────────────────────────────
   # CONTACTS - Historique des actions
   # ─────────────────────────────────────────
@@ -3436,7 +3481,6 @@ paths:
       tags: [Leads]
       operationId: createLead
       summary: Create a new lead
-      description: "**Au moins un des champs suivants doit être fourni : `email`, `phone`, ou `mobile`.**"
       parameters:
         - name: agency_id
           in: path
@@ -3446,233 +3490,7 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              description: "Lead entrant (prospect venant d'un portail ou formulaire)"
-              required: [reference, email, phone, mobile]
-              properties:
-                provider:
-                  type: string
-                  description: "ID du provider source du lead (retourné en string)"
-                  example: "4"
-                type:
-                  type: string
-                  description: "Type de lead → voir catalog lead_type"
-                  example: "1"
-                step:
-                  type: string
-                  description: "Étape du lead → voir catalog lead_step"
-                  example: "4"
-                date:
-                  type: string
-                  format: date-time
-                  description: "Date du contact (format YYYY-MM-DD HH:MM:SS)"
-                  example: "2014-12-03T15:08:15Z"
-                start_at:
-                  type: string
-                  nullable: true
-                  description: "Critère de date de début de location (format MySQL)"
-                end_at:
-                  type: string
-                  nullable: true
-                  description: "Critère de date de fin de location (format MySQL)"
-                reference:
-                  type: string
-                  description: "Votre référence unique pour ce lead"
-                  example: "194D1DDEDdE"
-                lastname:
-                  type: string
-                  nullable: true
-                  description: "Nom du prospect"
-                  example: "DUPONT"
-                firstname:
-                  type: string
-                  nullable: true
-                  description: "Prénom du prospect"
-                  example: "Jean"
-                email:
-                  type: string
-                  format: email
-                  nullable: true
-                  description: "Adresse e-mail du prospect"
-                  example: "user@example.com"
-                phone:
-                  type: string
-                  nullable: true
-                  description: "Téléphone du prospect"
-                fax:
-                  type: string
-                  nullable: true
-                  description: "Fax du prospect"
-                mobile:
-                  type: string
-                  nullable: true
-                  description: "Mobile du prospect"
-                method:
-                  type: string
-                  nullable: true
-                  description: "Méthode de contact"
-                language:
-                  type: string
-                  description: "Code langue ISO 639-1 du prospect"
-                  example: "fr"
-                country:
-                  type: string
-                  description: "Code pays ISO 3166-1 alpha-2 du prospect"
-                  example: "FR"
-                title:
-                  type: integer
-                  nullable: true
-                  description: "Civilité du prospect → voir catalog contact_title"
-                address:
-                  type: string
-                  nullable: true
-                  description: "Adresse postale du prospect"
-                address_more:
-                  type: string
-                  nullable: true
-                  description: "Complément d'adresse du prospect"
-                zipcode:
-                  type: string
-                  nullable: true
-                  description: "Code postal du prospect"
-                city:
-                  type: string
-                  nullable: true
-                  description: "Ville du prospect"
-                referral:
-                  type: string
-                  nullable: true
-                  description: "Origine du lead → voir catalog origine"
-                subreferral:
-                  type: string
-                  nullable: true
-                  description: "Sous-origine du lead"
-                recipient_lastname:
-                  type: string
-                  nullable: true
-                  description: "Nom du destinataire (fonction 'envoyer à un ami')"
-                recipient_firstname:
-                  type: string
-                  nullable: true
-                  description: "Prénom du destinataire (fonction 'envoyer à un ami')"
-                recipient_email:
-                  type: string
-                  format: email
-                  nullable: true
-                  description: "Email du destinataire (fonction 'envoyer à un ami')"
-                property_reference:
-                  type: string
-                  nullable: true
-                  description: "Référence du bien"
-                property_address:
-                  type: string
-                  nullable: true
-                  description: "Adresse du bien"
-                property_address_more:
-                  type: string
-                  nullable: true
-                  description: "Complément d'adresse du bien"
-                property_zipcode:
-                  type: string
-                  nullable: true
-                  description: "Code postal du bien"
-                property_city:
-                  type: string
-                  nullable: true
-                  description: "Ville du bien"
-                property_country:
-                  type: string
-                  nullable: true
-                  description: "Pays du bien (ISO 3166-1 alpha-2)"
-                property_category:
-                  type: integer
-                  nullable: true
-                  description: "Catégorie du bien → voir catalog property_category"
-                property_types:
-                  type: string
-                  nullable: true
-                  description: "Types du bien séparés par virgule (ex: '1,2,3') → voir catalog property_type"
-                property_subtype:
-                  type: string
-                  nullable: true
-                  description: "Sous-type du bien → voir catalog property_subtype"
-                property_view_landscape:
-                  type: integer
-                  nullable: true
-                  description: "Vue du bien → voir catalog property_view_landscape"
-                property_view_type:
-                  type: integer
-                  nullable: true
-                  description: "Type de vue → voir catalog property_view_type"
-                contact:
-                  type: integer
-                  nullable: true
-                  description: "ID du contact lié au lead"
-                user:
-                  type: integer
-                  nullable: true
-                  description: "ID de l'utilisateur lié au lead"
-                message:
-                  type: string
-                  nullable: true
-                  description: "Message libre du prospect"
-                area_min:
-                  type: number
-                  nullable: true
-                  description: "Surface minimum recherchée"
-                area_max:
-                  type: number
-                  nullable: true
-                  description: "Surface maximum recherchée"
-                area_unit:
-                  type: integer
-                  nullable: true
-                  description: "Unité de surface → voir catalog unit_area"
-                room_min:
-                  type: integer
-                  nullable: true
-                  description: "Nombre de pièces minimum"
-                room_max:
-                  type: integer
-                  nullable: true
-                  description: "Nombre de pièces maximum"
-                bedroom_min:
-                  type: integer
-                  nullable: true
-                  description: "Nombre de chambres minimum"
-                bedroom_max:
-                  type: integer
-                  nullable: true
-                  description: "Nombre de chambres maximum"
-                price_min:
-                  type: number
-                  nullable: true
-                  description: "Prix minimum recherché"
-                price_max:
-                  type: number
-                  nullable: true
-                  description: "Prix maximum recherché"
-                currency:
-                  type: string
-                  nullable: true
-                  description: "Devise ISO 4217 du prospect"
-                  example: "EUR"
-                locations:
-                  type: array
-                  nullable: true
-                  description: "Tableau de localisation (ID ou noms)"
-                  example: '["Cannes","Nice","Paris"]'
-                created_at:
-                  type: string
-                  format: date-time
-                  description: "Date de création"
-                  example: "2014-11-11T11:22:46Z"
-                updated_at:
-                  type: string
-                  format: date-time
-                  description: "Date de dernière mise à jour"
-                  example: "2014-12-03T15:08:15Z"
+            schema: { $ref: '#/components/schemas/Lead' }
       responses:
         '200':
           description: "Lead créé - retourne l'ID et les dates"
@@ -3699,6 +3517,61 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /agencies/{agency_id}/leads/{lead_id}:
+    put:
+      tags: [Leads]
+      operationId: updateLead
+      summary: Update a lead
+      description: "Met à jour un lead existant (prospect venant d'un portail ou formulaire)."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: lead_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique du lead à mettre à jour"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Lead' }
+      responses:
+        '200':
+          description: "Lead mis à jour - retourne l'ID et les dates"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    description: "ID du lead mis à jour"
+                    example: 188699
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: "Date de création"
+                    example: "2016-04-29T16:17:23Z"
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: "Date de dernière mise à jour"
+                    example: "2016-04-29T16:17:23Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
@@ -3942,6 +3815,110 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /agencies/{agency_id}/actions/{action_id}:
+    put:
+      tags: [Actions]
+      operationId: updateAction
+      summary: Update an action
+      description: "Met à jour une action existante (appel, visite, email...) liée à un contact et/ou des biens."
+      parameters:
+        - name: agency_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'agence"
+        - name: action_id
+          in: path
+          required: true
+          schema: { type: integer }
+          description: "Identifiant unique de l'action à mettre à jour"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user, type, date]
+              properties:
+                user:
+                  type: integer
+                  description: "ID de l'utilisateur responsable de l'action. **Requis**"
+                  example: 3896
+                type:
+                  type: integer
+                  description: "Type d'action → voir catalog action_type. **Requis**"
+                  nullable: true
+                method:
+                  type: integer
+                  description: "Méthode d'action → voir catalog action_method"
+                  nullable: true
+                date:
+                  type: string
+                  format: date
+                  description: "Date de l'action (format YYYY-MM-DD). **Requis**"
+                  example: "2024-06-15"
+                start_at:
+                  type: string
+                  description: "Heure de début (format HH:MM)"
+                  example: "09:00"
+                  nullable: true
+                end_at:
+                  type: string
+                  description: "Heure de fin (format HH:MM)"
+                  example: "10:00"
+                  nullable: true
+                contact:
+                  type: integer
+                  description: "ID du contact associé à l'action"
+                  nullable: true
+                  example: 220351
+                properties:
+                  type: array
+                  description: "Liste des IDs de biens associés à l'action"
+                  items:
+                    type: integer
+                  example: [181297, 181298]
+                subject:
+                  type: string
+                  description: "Sujet de l'action"
+                  nullable: true
+                  example: "Visite appartement centre-ville"
+                content:
+                  type: string
+                  description: "Contenu détaillé de l'action"
+                  nullable: true
+                  example: "Le client est intéressé, souhaite une deuxième visite."
+                referral:
+                  type: integer
+                  description: "Origine de l'action → voir catalog origine"
+                  nullable: true
+                subreferral:
+                  type: integer
+                  description: "Sous-origine de l'action"
+                  nullable: true
+      responses:
+        '200':
+          description: "Action mise à jour - retourne uniquement l'ID (en string)"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: "ID de l'action mise à jour (retourné en string par l'API)"
+                    example: "19344239"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
         '500':
