@@ -32,6 +32,8 @@ info:
     | `residences` | Read residences |
     | `catalogs_private`, `catalogs_general` | Additional catalogs |
 
+    Routes and fields marked 🔒 **Private** are only reachable or filled with a private scope (`properties_private`, `agencies_private`).
+
     ## Quota
     Each call uses one request of your account's daily quota (1,000 by default), reset every night.
     Beyond it, the API answers `429`. Lead creation (`POST /agencies/{agency_id}/leads`) and `PUT /agencies/{agency_id}/properties/{property_id}/provider`
@@ -47,13 +49,13 @@ info:
     - Dates: `YYYY-MM-DD`; date-times: `YYYY-MM-DD HH:MM:SS` (Paris time).
     - Value ids (types, statuses, categories...) are defined by catalogs: `GET /catalogs/{catalog}`.
     - Types: in responses, many ids and catalog values are strings (`"101"`), and so are decimal amounts (`"250000.00"`); the type of each field is given in the schemas. In requests, send numbers.
-    - Multiple filters are written `step[]=1&step[]=2`.
+    - Multiple values are written `step[]=1&step[]=2` (`step=1` for a single value).
 
     ## Errors
     Errors look like `{"status": 403, "title": "Forbidden", "detail": "..."}`.
     Warning: a few routes return this body with an HTTP `200` code (resource not found on a detail route); check for `status`/`detail`.
   version: 3.0.0
-  contact: {name: Apimo Support, url: 'https://apimo.net/fr/contact'}
+  contact: {name: Apimo, url: 'https://apimo.com'}
 servers:
 - url: https://api.apimo.pro
   description: Production server
@@ -217,14 +219,14 @@ paths:
         in: query
         schema: {type: integer}
         description: Filter on an account
-      - name: with
+      - name: with[]
         in: query
         schema:
           type: array
           items:
             type: string
             enum: [providers, parameters, backup]
-        description: 'Extra data: `providers` (connected partners), `parameters` (settings, `agencies_private` scope), `backup` (includes disabled users). Space-separated values or `with[]=` array'
+        description: 'Extra data: `providers` (connected partners), `parameters` (🔒 private, `agencies_private`: agency settings), `backup` (includes disabled users)'
         style: form
         explode: true
       responses:
@@ -261,14 +263,14 @@ paths:
         **Scope**: none.
       parameters:
       - {$ref: '#/components/parameters/AgencyId'}
-      - name: with
+      - name: with[]
         in: query
         schema:
           type: array
           items:
             type: string
             enum: [providers, parameters, backup]
-        description: 'Extra data: `providers` (connected partners), `parameters` (settings, `agencies_private` scope), `backup` (includes disabled users). Space-separated values or `with[]=` array'
+        description: 'Extra data: `providers` (connected partners), `parameters` (🔒 private, `agencies_private`: agency settings), `backup` (includes disabled users)'
         style: form
         explode: true
       responses:
@@ -285,8 +287,10 @@ paths:
     get:
       tags: [Agencies]
       operationId: listAgencySectors
-      summary: List the agency's sectors
+      summary: 🔒 List the agency's sectors
       description: |
+        🔒 **Private route**
+
         Lists the geographic sectors of the agency's company.
 
         **Scope**: `agencies_private`.
@@ -317,8 +321,10 @@ paths:
     get:
       tags: [Agencies]
       operationId: listAgencyProviders
-      summary: List the partners connected to the agency
+      summary: 🔒 List the partners connected to the agency
       description: |
+        🔒 **Private route**
+
         Lists the partners (portals, tools) with an active connection to the agency, its company or its network.
 
         **Scope**: `agencies_private`.
@@ -422,7 +428,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: type
+      - name: type[]
         in: query
         schema:
           type: array
@@ -469,7 +475,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: type
+      - name: type[]
         in: query
         schema:
           type: array
@@ -528,7 +534,7 @@ paths:
         description: Number of properties (max 1000)
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: step
+      - name: step[]
         in: query
         schema:
           type: array
@@ -536,7 +542,7 @@ paths:
         description: 'Steps (default: 1 if neither `step` nor `status`)'
         style: form
         explode: true
-      - name: status
+      - name: status[]
         in: query
         schema:
           type: array
@@ -544,15 +550,15 @@ paths:
         description: Statuses
         style: form
         explode: true
-      - name: group
+      - name: group[]
         in: query
         schema:
           type: array
           items: {type: integer}
-        description: Groups (`properties_private` scope; otherwise 1 and 3)
+        description: '🔒 **Private** — Groups (without `properties_private`: 1 and 3)'
         style: form
         explode: true
-      - name: user_id
+      - name: user_id[]
         in: query
         schema:
           type: array
@@ -576,11 +582,25 @@ paths:
         in: query
         schema: {type: string, example: USD}
         description: Converts `price.value` to this currency (the original price is returned in `price.original_value`)
-      - name: with
+      - name: with[]
         in: query
-        schema: {type: string}
-        description: 'Extra data, space-separated: `advanced` (detailed services and proximities), `advanced_services`, `advanced_proximities`, `options` (publication options), `partners` (publication portals), `logs` (history, `properties_private` scope), `graph_infos`, `graph_i18n` (energy label graphs per language)'
-        example: advanced options
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - advanced
+            - advanced_services
+            - advanced_proximities
+            - options
+            - partners
+            - graph_infos
+            - graph_i18n
+            - logs
+            - backup
+        description: 'Extra data (e.g. `with[]=options&with[]=logs`): `advanced` (detailed services and proximities), `advanced_services`, `advanced_proximities`, `options` (publication options per portal), `partners` (publication portals), `graph_infos` (energy label images), `graph_i18n` (with `graph_infos`: image per language), `logs` (🔒 private: change history), `backup` (🔒 private: the whole property, including unpublished pictures, documents and medias)'
+        style: form
+        explode: true
       responses:
         '200':
           description: OK
@@ -658,8 +678,10 @@ paths:
     get:
       tags: [Properties]
       operationId: listPropertyLogs
-      summary: List the property change history
+      summary: 🔒 List the property change history
       description: |
+        🔒 **Private route**
+
         Change history of the agency properties.
 
         **Scope**: `properties_private`.
@@ -714,7 +736,7 @@ paths:
       parameters:
       - {$ref: '#/components/parameters/AgencyId'}
       - {$ref: '#/components/parameters/PropertyId'}
-      - name: step
+      - name: step[]
         in: query
         schema:
           type: array
@@ -730,11 +752,25 @@ paths:
         in: query
         schema: {type: string, example: USD}
         description: Converts `price.value` to this currency (the original price is returned in `price.original_value`)
-      - name: with
+      - name: with[]
         in: query
-        schema: {type: string}
-        description: 'Extra data, space-separated: `advanced` (detailed services and proximities), `advanced_services`, `advanced_proximities`, `options` (publication options), `partners` (publication portals), `logs` (history, `properties_private` scope), `graph_infos`, `graph_i18n` (energy label graphs per language)'
-        example: advanced options
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - advanced
+            - advanced_services
+            - advanced_proximities
+            - options
+            - partners
+            - graph_infos
+            - graph_i18n
+            - logs
+            - backup
+        description: 'Extra data (e.g. `with[]=options&with[]=logs`): `advanced` (detailed services and proximities), `advanced_services`, `advanced_proximities`, `options` (publication options per portal), `partners` (publication portals), `graph_infos` (energy label images), `graph_i18n` (with `graph_infos`: image per language), `logs` (🔒 private: change history), `backup` (🔒 private: the whole property, including unpublished pictures, documents and medias)'
+        style: form
+        explode: true
       responses:
         '200':
           description: OK
@@ -791,7 +827,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: step
+      - name: step[]
         in: query
         schema:
           type: array
@@ -1492,7 +1528,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: type
+      - name: type[]
         in: query
         schema:
           type: array
@@ -1539,7 +1575,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: type
+      - name: type[]
         in: query
         schema:
           type: array
@@ -1731,7 +1767,7 @@ paths:
       - {$ref: '#/components/parameters/Limit'}
       - {$ref: '#/components/parameters/Offset'}
       - {$ref: '#/components/parameters/Timestamp'}
-      - name: step
+      - name: step[]
         in: query
         schema:
           type: array
@@ -1807,7 +1843,7 @@ paths:
       operationId: createLead
       summary: Send a lead
       description: |
-        Sends a lead to the agency (not counted in the quota). An alert e-mail is sent to the agency for a new lead of type 1, 2, 3 or 6, unless `no_alert` is set. If you already sent this `reference` for the agency, the existing lead is updated (and replaced, see `LeadInput`).
+        Sends a lead to the agency (not counted in the quota). An alert e-mail is sent to the agency for a new lead of type 1, 2, 3 or 6, unless `no_alert` is set. If you already sent this `reference` for the agency, the existing lead is updated (and replaced, see `LeadInput`). Sending is open without a connection to the agency; updating a lead by its `id` needs an active connection.
 
         **Scope**: `leads_write`.
       parameters:
@@ -1882,7 +1918,7 @@ paths:
       operationId: updateLead
       summary: Update a lead
       description: |
-        Updates a lead of the agency. **Fields not sent are emptied** (see `LeadInput`).
+        Updates a lead of the agency (an active connection to the agency is required). **Fields not sent are emptied** (see `LeadInput`).
 
         **Scope**: `leads_write`.
       parameters:
@@ -2764,7 +2800,7 @@ components:
                 description: Sector users
                 items: {type: string}
         parameters:
-          description: 'With `with=parameters` and the `agencies_private` scope: agency parameters (`[{type, value}]`). Otherwise: relative path'
+          description: '🔒 **Private** — With `with[]=parameters` and the `agencies_private` scope: agency parameters (`[{type, value}]`). Otherwise: relative path'
           oneOf:
           - type: array
             items:
@@ -3191,7 +3227,7 @@ components:
         ranking:
           type: integer
           nullable: true
-          description: Rating from 1 to 5. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Rating from 1 to 5. Only filled with the `properties_private` scope
         category:
           type: integer
           description: Category (1 sale, 2 rental, 3 seasonal rental, 4 development, 5 life annuity, 6 auction) → catalog `property_category`
@@ -3299,7 +3335,7 @@ components:
         original_city:
           type: array
           nullable: true
-          description: Real city when a different public city is set (one-item array). Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Real city when a different public city is set (one-item array). Only filled with the `properties_private` scope
           items:
             type: object
             properties:
@@ -3330,7 +3366,7 @@ components:
         original_district:
           type: object
           nullable: true
-          description: Real district when a different public district is set (`properties_private` scope)
+          description: 🔒 **Private** — Real district when a different public district is set (`properties_private` scope)
           properties:
             id:
               type: integer
@@ -3358,18 +3394,18 @@ components:
           description: Altitude in meters
         private_longitude:
           type: number
-          description: Exact longitude. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Exact longitude. Only filled with the `properties_private` scope
         private_latitude:
           type: number
-          description: Exact latitude. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Exact latitude. Only filled with the `properties_private` scope
         referral:
           type: string
           nullable: true
-          description: Mandate origin → catalog `referral`. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Mandate origin → catalog `referral`. Only filled with the `properties_private` scope
         subreferral:
           type: string
           nullable: true
-          description: Mandate sub-origin. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Mandate sub-origin. Only filled with the `properties_private` scope
         area:
           type: object
           description: Areas
@@ -3465,15 +3501,15 @@ components:
         owner:
           type: string
           nullable: true
-          description: Owner (contact id). Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Owner (contact id). Only filled with the `properties_private` scope
         tenant:
           type: string
           nullable: true
-          description: Tenant (contact id). Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Tenant (contact id). Only filled with the `properties_private` scope
         visit:
           type: object
           nullable: true
-          description: Visits (`properties_private` scope, or property in Switzerland)
+          description: 🔒 **Private** — Visits (`properties_private` scope; also returned for properties in Switzerland)
           properties:
             contact:
               type: string
@@ -3834,22 +3870,22 @@ components:
         filling_rate:
           type: string
           nullable: true
-          description: Completion rate. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Completion rate. Only filled with the `properties_private` scope
         private_comment:
           type: string
           nullable: true
-          description: Private comment. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Private comment. Only filled with the `properties_private` scope
         interagency_comment:
           type: string
           nullable: true
-          description: Inter-agency comment. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Inter-agency comment. Only filled with the `properties_private` scope
         status_comment:
           type: string
           nullable: true
-          description: Status comment (property not available). Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Status comment (property not available). Only filled with the `properties_private` scope
         logs:
           type: array
-          description: Change history (`properties_private` scope + `with=logs`)
+          description: 🔒 **Private** — Change history (`properties_private` scope + `with[]=logs`)
           items:
             type: object
             properties:
@@ -4176,20 +4212,20 @@ components:
           description: Fees paid by the buyer (shared display in France or `properties_private` scope)
         net_seller:
           type: number
-          description: Net seller price. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Net seller price. Only filled with the `properties_private` scope
         sold:
           type: number
           nullable: true
-          description: Final sale price. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Final sale price. Only filled with the `properties_private` scope
         sold_at:
           type: string
           format: date
           nullable: true
-          description: Sale date. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Sale date. Only filled with the `properties_private` scope
           example: '2024-06-15'
         estimation:
           type: object
-          description: Estimate (`properties_private` scope)
+          description: 🔒 **Private** — Estimate (`properties_private` scope)
           properties:
             min:
               type: number
@@ -4202,7 +4238,7 @@ components:
         negotiable:
           type: number
           nullable: true
-          description: Negotiable price. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Negotiable price. Only filled with the `properties_private` scope
 
     PropertyPicture:
       type: object
@@ -4451,10 +4487,10 @@ components:
         graph:
           type: string
           nullable: true
-          description: URL of the graph image (energy label) in the `culture` language
+          description: Base64-encoded label image (energy label), in the `culture` language (with `with[]=graph_infos`, otherwise `null`)
         graph_i18ns:
           type: object
-          description: 'With `with=graph_i18n`: graph URL per language (`{"fr_FR": "https://..."}`); empty array otherwise'
+          description: 'With `with[]=graph_infos` and `with[]=graph_i18n`: base64 image per language (`{"fr_FR": "..."}`); empty array otherwise'
           properties: {}
           additionalProperties: {type: string}
 
@@ -5099,7 +5135,7 @@ components:
           example: '3896'
         category:
           type: string
-          description: Category (1 individual, 2 professional, 3 joint ownership) → catalog `contact_category`
+          description: Category (1 individual, 2 professional, 3 joint ownership / estate) → catalog `contact_category`
           example: '1'
         activity:
           type: string
@@ -5264,7 +5300,7 @@ components:
             subscription:
               type: integer
               enum: [1, 2, 3]
-              description: 1 = not subscribed, 2 = subscribed, 3 = refused → catalog `subscription`
+              description: 1 not subscribed, 2 subscribed, 3 refused (a value 4 "returned" sent when writing reads back as 3) → catalog `subscription`
             subscribe_at:
               type: string
               nullable: true
@@ -5282,7 +5318,7 @@ components:
             subscription:
               type: integer
               enum: [1, 2, 3]
-              description: 1 = not subscribed, 2 = subscribed, 3 = refused → catalog `subscription`
+              description: 1 not subscribed, 2 subscribed, 3 refused (a value 4 "returned" sent when writing reads back as 3) → catalog `subscription`
             subscribe_at:
               type: string
               nullable: true
@@ -5300,7 +5336,7 @@ components:
             subscription:
               type: integer
               enum: [1, 2, 3]
-              description: 1 = not subscribed, 2 = subscribed, 3 = refused → catalog `subscription`
+              description: 1 not subscribed, 2 subscribed, 3 refused (a value 4 "returned" sent when writing reads back as 3) → catalog `subscription`
             subscribe_at:
               type: string
               nullable: true
@@ -5483,7 +5519,7 @@ components:
         category:
           type: integer
           enum: [1, 2, 3]
-          description: Category (default 1; 2 when `company` is set) → catalog `contact_category`
+          description: 'Category: 1 individual, 2 professional, 3 joint ownership / estate (default 1; 2 when `company` is set) → catalog `contact_category`'
         reference:
           type: string
           description: Your reference (stored, not returned when reading)
@@ -5590,7 +5626,7 @@ components:
           description: Website
         language:
           type: array
-          description: 'Spoken languages (ISO 639-1). **Send it on every update**: when missing, the value is replaced by `["en"]`'
+          description: 'Spoken languages (ISO 639-1). Default on creation: `["en"]`'
           items: {type: string}
           example: [fr, en]
         currency:
@@ -5614,16 +5650,16 @@ components:
           example: '2024-06-15'
         mailing:
           type: integer
-          enum: [1, 2, 3]
-          description: 'Postal mailing: 1 not subscribed, 2 subscribed, 3 refused → catalog `subscription`'
+          enum: [1, 2, 3, 4]
+          description: 'Postal mailing: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
         emailing:
           type: integer
-          enum: [1, 2, 3]
-          description: 'Newsletter: 1 not subscribed, 2 subscribed, 3 refused → catalog `subscription`'
+          enum: [1, 2, 3, 4]
+          description: 'Newsletter: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
         magazine:
           type: integer
-          enum: [1, 2, 3]
-          description: 'Print magazine: 1 not subscribed, 2 subscribed, 3 refused → catalog `subscription`'
+          enum: [1, 2, 3, 4]
+          description: 'Print magazine: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
         tags_customized:
           type: array
           nullable: true
@@ -5670,7 +5706,8 @@ components:
           properties:
             subscription:
               type: string
-              description: Subscription to property mailings → catalog `subscription`
+              enum: ['1', '2', '3', '4']
+              description: 'Subscription to property mailings: 1 not subscribed, 2 subscribed, 3 refused, 4 returned → catalog `subscription`'
             last_at:
               type: string
               nullable: true
@@ -5952,7 +5989,8 @@ components:
           properties:
             subscription:
               type: integer
-              description: Subscription to property mailings (1 to 4) → catalog `subscription`
+              enum: [1, 2, 3, 4]
+              description: 'Subscription to property mailings: 1 not subscribed, 2 subscribed, 3 refused, 4 returned → catalog `subscription`'
         category:
           type: integer
           enum: [1, 2, 3, 4, 5, 6]
@@ -6129,7 +6167,7 @@ components:
         tags_customized:
           type: array
           nullable: true
-          description: Agency custom tags (ids, update only). Replaces the list; `null` empties it
+          description: Agency custom tags (ids). Replaces the list; `null` empties it
           items: {type: integer}
         comment:
           type: string
@@ -6690,6 +6728,9 @@ components:
           nullable: true
           description: End time (`HH:MM:SS`)
           example: '15:30:00'
+        calendar_is:
+          type: boolean
+          description: Shown in the agent's calendar
         subject:
           type: string
           nullable: true
