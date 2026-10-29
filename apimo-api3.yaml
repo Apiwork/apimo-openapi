@@ -51,6 +51,13 @@ info:
     - Types : dans les réponses, beaucoup d'identifiants et de valeurs de catalogue sont des chaînes (`"101"`) et les montants décimaux aussi (`"250000.00"`) ; le type de chaque champ est précisé dans les schémas. En entrée, envoyez des nombres.
     - Les paramètres multiples s'écrivent `step[]=1&step[]=2` (`step=1` pour une seule valeur).
 
+    ## Lecture et écriture
+    Le corps à envoyer en `POST`/`PUT` ne suit pas toujours le même schéma que la réponse du `GET` de la même ressource :
+    certains champs changent de nom ou de forme (par exemple `user` s'envoie sous forme d'identifiant et revient sous forme d'objet,
+    le champ `company` d'un contact revient dans `name`), et certains champs n'existent qu'en lecture ou qu'en écriture.
+    Chaque route d'écriture décrit donc son propre schéma d'entrée (`PropertyInput`, `ContactInput`, `RequestInput`, `LeadInput`...) :
+    basez-vous sur celui-ci plutôt que sur la réponse du `GET`. Nous travaillons à harmoniser ces formats dans les prochaines évolutions de l'API.
+
     ## Erreurs
     Les erreurs ont la forme `{"status": 403, "title": "Forbidden", "detail": "..."}`.
     Attention : quelques routes renvoient ce corps avec un code HTTP `200` (ressource introuvable sur une route de détail) ; vérifiez la présence de `status`/`detail`.
@@ -515,7 +522,7 @@ paths:
       operationId: listProperties
       summary: List the properties
       description: |
-        Liste les biens de l'agence publiés pour vous. Par défaut : étape 1 (en cours) et groupes 1 et 3. Avec le scope `properties_private`, tous les biens de l'agence et leurs champs privés.
+        Liste les biens de l'agence publiés pour vous. Par défaut : étape 1 (en cours) et groupes 1 et 3. Avec le scope `properties_private`, tous les biens de l'agence et leurs champs privés, ou seulement la sélection d'un portail avec `provider`.
 
         Plusieurs agences en un appel : `agency_id` = `101_102_103`.
 
@@ -566,6 +573,10 @@ paths:
         description: Négociateurs
         style: form
         explode: true
+      - name: provider
+        in: query
+        schema: {type: integer}
+        description: '🔒 **Privé** — Identifiant d''un portail connecté à l''agence : ne renvoie que les biens sélectionnés pour ce portail. `403` si l''agence n''a pas de connexion active avec ce portail. Sans le scope `properties_private`, ce paramètre est ignoré : vous recevez votre propre sélection'
       - name: updated
         in: query
         schema: {type: string, example: '2024-06-01 00:00:00'}

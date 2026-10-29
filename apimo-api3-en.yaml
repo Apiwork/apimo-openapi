@@ -51,6 +51,13 @@ info:
     - Types: in responses, many ids and catalog values are strings (`"101"`), and so are decimal amounts (`"250000.00"`); the type of each field is given in the schemas. In requests, send numbers.
     - Multiple values are written `step[]=1&step[]=2` (`step=1` for a single value).
 
+    ## Reading and writing
+    The body to send with `POST`/`PUT` does not always follow the same schema as the `GET` response of the same resource:
+    some fields are renamed or shaped differently (for example `user` is sent as an id and returned as an object,
+    a contact's `company` field is returned as `name`), and some fields are read-only or write-only.
+    Each write route therefore describes its own input schema (`PropertyInput`, `ContactInput`, `RequestInput`, `LeadInput`...):
+    rely on it rather than on the `GET` response. We are working on aligning these formats in future versions of the API.
+
     ## Errors
     Errors look like `{"status": 403, "title": "Forbidden", "detail": "..."}`.
     Warning: a few routes return this body with an HTTP `200` code (resource not found on a detail route); check for `status`/`detail`.
@@ -515,7 +522,7 @@ paths:
       operationId: listProperties
       summary: List the properties
       description: |
-        Lists the agency properties published for you. By default: step 1 (active) and groups 1 and 3. With the `properties_private` scope, every property of the agency and their private fields.
+        Lists the agency properties published for you. By default: step 1 (active) and groups 1 and 3. With the `properties_private` scope, every property of the agency and their private fields, or only one portal's selection with `provider`.
 
         Several agencies in one call: `agency_id` = `101_102_103`.
 
@@ -566,6 +573,10 @@ paths:
         description: Agents
         style: form
         explode: true
+      - name: provider
+        in: query
+        schema: {type: integer}
+        description: '🔒 **Private** — Id of a portal connected to the agency: returns only the properties selected for that portal. `403` if the agency has no active connection with that portal. Without the `properties_private` scope, this parameter is ignored: you get your own selection'
       - name: updated
         in: query
         schema: {type: string, example: '2024-06-01 00:00:00'}
