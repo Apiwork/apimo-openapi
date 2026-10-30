@@ -6867,7 +6867,7 @@ components:
           description: Sub-origin (agency specific)
         calendar_is:
           type: boolean
-          description: 'Show in the calendar (default: `true` for types 14 and 15)'
+          description: Show in the calendar. Whenever `type` is sent, including on update, `calendar_is` is reset to its default value (`true` for types 14 and 15, `false` otherwise), then replaced by `calendar_is` if it is sent in the same request. To keep the current value when you send `type`, send `calendar_is` too
         properties:
           type: array
           description: 'Linked properties: ids or objects. Added to the already linked properties (nothing is removed)'

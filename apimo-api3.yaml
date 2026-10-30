@@ -6867,7 +6867,7 @@ components:
           description: Sous-origine (propre à l'agence)
         calendar_is:
           type: boolean
-          description: 'Afficher dans l''agenda (défaut : `true` pour les types 14 et 15)'
+          description: Afficher dans l'agenda. Chaque fois que `type` est envoyé, y compris en mise à jour, `calendar_is` est remis à sa valeur par défaut (`true` pour les types 14 et 15, `false` sinon), puis remplacé par `calendar_is` s'il est envoyé dans la même requête. Pour conserver la valeur actuelle quand vous envoyez `type`, renvoyez aussi `calendar_is`
         properties:
           type: array
           description: 'Biens liés : identifiants ou objets. Ajoutés aux biens déjà liés (aucune suppression)'
