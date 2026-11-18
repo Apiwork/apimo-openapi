@@ -30,6 +30,7 @@ info:
     | `actions` / `actions_write` | Read / write actions (calendar, history) |
     | `contracts` / `contracts_write` | Read / write contracts |
     | `residences` | Read residences |
+    | `books` | Read registers (listing agreement register, management, escrow...) |
     | `catalogs_private`, `catalogs_general` | Additional catalogs |
 
     Routes and fields marked 🔒 **Private** are only reachable or filled with a private scope (`properties_private`, `agencies_private`).
@@ -97,6 +98,8 @@ tags:
   description: Contracts (sales, rentals) and entries
 - name: Residences
   description: Residences and buildings
+- name: Books
+  description: Agency registers (listing agreement register, management, escrow...)
 
 paths:
 
@@ -147,7 +150,7 @@ paths:
                   timestamp:
                     type: integer
                     nullable: true
-                    description: UNIX timestamp of the most recent update in the page (pass it back as `timestamp` for incremental sync)
+                    description: UNIX timestamp of the call
                   feeds:
                     type: array
                     description: Connections
@@ -220,8 +223,8 @@ paths:
       - {$ref: '#/components/parameters/Timestamp'}
       - name: active
         in: query
-        schema: {type: boolean, default: true}
-        description: '`false`: disabled agencies only'
+        schema: {type: integer, enum: [0, 1], default: 1}
+        description: '`0`: disabled agencies only'
       - name: accountId
         in: query
         schema: {type: integer}
@@ -522,7 +525,7 @@ paths:
       operationId: listProperties
       summary: List the properties
       description: |
-        Lists the agency properties published for you. By default: step 1 (active) and groups 1 and 3. With the `properties_private` scope, every property of the agency and their private fields, or only one portal's selection with `provider`.
+        Lists the agency properties published for you. By default: step 1 (active) and groups 1 (General) and 3 (Delegation). With the `properties_private` scope, every property of the agency (not only those published for you) and their private fields, the other groups with `group[]`, or only one portal's selection with `provider`.
 
         Several agencies in one call: `agency_id` = `101_102_103`.
 
@@ -562,7 +565,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: '🔒 **Private** — Groups (without `properties_private`: 1 and 3)'
+        description: '🔒 **Private** — Groups → catalog `property_group`. Only applied with `properties_private`; otherwise, or without this filter: groups 1 (General) and 3 (Delegation)'
         style: form
         explode: true
       - name: user_id[]
@@ -1544,7 +1547,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: Action types
+        description: Action types → catalog `action_type`
         style: form
         explode: true
       responses:
@@ -1591,7 +1594,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: Action types
+        description: Action types → catalog `action_type`
         style: form
         explode: true
       responses:
@@ -2183,6 +2186,52 @@ paths:
         '429': {$ref: '#/components/responses/TooManyRequests'}
 
   # ─────────────────────────────────────────
+  # BOOKS
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/books:
+    get:
+      tags: [Books]
+      operationId: listBooks
+      summary: List the registers
+      description: |
+        Lists the entries of the agency registers: listing agreement register (transaction), management, search, escrow, delegation and AML/CFT. Paginated list, sorted by ascending update date. For an incremental sync, pass the `timestamp` value received during the previous call as the `timestamp` parameter.
+
+        When an entry is linked to a property, Apimo copies its number, type and dates into the property's listing agreement (`agreement` of a property).
+
+        **Scope**: `books`.
+      parameters:
+      - {$ref: '#/components/parameters/AgencyId'}
+      - {$ref: '#/components/parameters/Limit'}
+      - {$ref: '#/components/parameters/Offset'}
+      - {$ref: '#/components/parameters/Timestamp'}
+      - name: book_id
+        in: query
+        schema: {type: integer}
+        description: Only returns the entry with this id
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  books:
+                    type: array
+                    description: Register entries
+                    items: {$ref: '#/components/schemas/Book'}
+                  total_items:
+                    type: integer
+                    description: Total number of items (before pagination)
+                  timestamp:
+                    type: integer
+                    nullable: true
+                    description: UNIX timestamp of the most recent update in the page (pass it back as `timestamp` for incremental sync)
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+
+  # ─────────────────────────────────────────
   # RESIDENCES
   # ─────────────────────────────────────────
   /agencies/{agency_id}/residences:
@@ -2520,12 +2569,12 @@ components:
           example: '101'
         settings:
           type: array
-          description: Connection settings
+          description: Values entered by the agency when activating the connection, in the order of the fields defined on your partner account (e.g. customer id)
           items: {type: string}
         last_lead_at:
           type: string
           nullable: true
-          description: Date of the last lead you sent for this agency
+          description: Date of the last lead you sent for this agency (agency connections only, otherwise `null`)
           example: '2024-06-15 14:30:00'
 
     CatalogList:
@@ -2721,7 +2770,7 @@ components:
           description: First picture URL
         quality:
           type: integer
-          description: Quality score
+          description: Average completion rate (0-100) of the agency's active listings
         currency:
           type: string
           description: ISO 4217 currency
@@ -2729,7 +2778,7 @@ components:
         timetable:
           type: string
           nullable: true
-          description: Opening hours
+          description: 'Opening hours: comma-separated `day:HH:MM:HH:MM` slots (day 1 = Sunday … 7 = Saturday), e.g. `2:09:00:12:00,2:14:00:18:00`'
         created_at:
           type: string
           description: Creation date
@@ -2746,7 +2795,7 @@ components:
           - {type: string}
         rates:
           type: array
-          description: Fee schedule
+          description: Agency commission scale of the agency's company (same for all its agencies)
           items:
             type: object
             properties:
@@ -2769,11 +2818,11 @@ components:
               commission_price:
                 type: string
                 nullable: true
-                description: Fixed fee (decimal number as a string)
+                description: Fixed agency commission, VAT incl. (decimal number as a string)
               commission_rate:
                 type: string
                 nullable: true
-                description: Fee in % (decimal number as a string)
+                description: Agency commission as a % of the price, VAT incl. (decimal number as a string)
               comment:
                 type: string
                 nullable: true
@@ -2781,7 +2830,7 @@ components:
               url:
                 type: string
                 nullable: true
-                description: URL of the PDF fee schedule (last item, if a document is uploaded)
+                description: URL of the PDF commission scale (last item, if a document is uploaded)
         partners:
           type: array
           description: Agency partners
@@ -2927,7 +2976,7 @@ components:
         rates:
           type: object
           nullable: true
-          description: User fee schedule
+          description: User's agency commission scale (PDF)
           properties:
             url:
               type: string
@@ -3159,7 +3208,7 @@ components:
         rates:
           type: object
           nullable: true
-          description: User fee schedule
+          description: User's agency commission scale (PDF)
           properties:
             url:
               type: string
@@ -3229,7 +3278,7 @@ components:
           example: 1
         group:
           type: integer
-          description: Group (without the `properties_private` scope only groups 1 and 3 are returned) → catalog `property_group`
+          description: 'Group: 1 General, 2 Market, 3 Delegation, 4 Prospecting, 5 Valuation, 6 Off market → catalog `property_group`. By default only groups 1 and 3 are returned (see the `group[]` filter)'
           example: 1
         parent:
           type: integer
@@ -3412,11 +3461,11 @@ components:
         referral:
           type: string
           nullable: true
-          description: 🔒 **Private** — Mandate origin → catalog `referral`. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Property origin, i.e. how the agency got it (prospecting, referrer, walk-in...) → catalog `referral`. Only filled with the `properties_private` scope
         subreferral:
           type: string
           nullable: true
-          description: 🔒 **Private** — Mandate sub-origin. Only filled with the `properties_private` scope
+          description: '🔒 **Private** — Specific origin: id of an agency-defined sub-origin detailing `referral`. Only filled with the `properties_private` scope'
         area:
           type: object
           description: Areas
@@ -3453,11 +3502,11 @@ components:
             width:
               type: string
               nullable: true
-              description: Plot frontage (decimal number as a string)
+              description: Plot length in metres, first value of “Length × Width” in Apimo (decimal number as a string)
             height:
               type: string
               nullable: true
-              description: Plot depth (decimal number as a string)
+              description: Plot width in metres, second value of “Length × Width” in Apimo (decimal number as a string)
             serviced_plot:
               type: boolean
               description: Serviced plot
@@ -3549,7 +3598,7 @@ components:
             fees:
               type: number
               nullable: true
-              description: Service charges
+              description: Building service charges (condominium charges)
               example: 70
             period:
               type: integer
@@ -3605,7 +3654,7 @@ components:
             type:
               type: integer
               nullable: true
-              description: Floor type → catalog `property_floor`
+              description: Floor (ground floor, 1st, top floor, basement...) → catalog `property_floor`
             value:
               description: Floor number (0 = ground floor) or `"last"` for the top floor
               anyOf:
@@ -3626,7 +3675,7 @@ components:
             device:
               type: integer
               nullable: true
-              description: First heating device → catalog `property_heating_device`
+              description: First heating appliance (radiator, underfloor, stove...) → catalog `property_heating_device`
             devices:
               type: array
               nullable: true
@@ -3690,11 +3739,11 @@ components:
         length:
           type: string
           nullable: true
-          description: Length (decimal number as a string)
+          description: Building length in metres (decimal number as a string; for a boat, see `boat.length`)
         height:
           type: string
           nullable: true
-          description: Height (decimal number as a string)
+          description: Building height in metres (decimal number as a string)
         url:
           type: string
           nullable: true
@@ -3914,7 +3963,7 @@ components:
                 example: '2024-06-15 14:30:00'
         referrals:
           type: array
-          description: Referrers
+          description: Referrers of the property and their commission (only referrers linked to a user are returned)
           items:
             type: object
             properties:
@@ -3931,18 +3980,18 @@ components:
               amount:
                 type: string
                 nullable: true
-                description: Amount (decimal number as a string)
+                description: Referrer's commission as an amount (decimal number as a string)
               rate:
                 type: string
                 nullable: true
-                description: Rate (decimal number as a string)
+                description: Referrer's commission as a percentage (decimal number as a string)
               comment:
                 type: string
                 nullable: true
                 description: Comment
               access_is:
                 type: integer
-                description: Access to the listing (1/0)
+                description: Access to the property record granted to the referrer (1/0)
               created_at:
                 type: string
                 description: Created
@@ -4044,7 +4093,7 @@ components:
               example: '2024-06-15 14:30:00'
             bid_min:
               type: number
-              description: Minimum bid
+              description: Minimum bid (the starting price is in `price.value`)
         shop:
           type: object
           description: Shop (only when `type` = 4)
@@ -4151,35 +4200,35 @@ components:
         value:
           type: number
           nullable: true
-          description: Price (sale) or rent (rental)
+          description: 'Displayed price. Sale: price paid by the buyer, including the agency commission the buyer pays (without that commission in Germany, Italy and Portugal). Rental: rent excluding charges (provision for charges in `fees`). Life annuity: market value. Auction: starting price'
           example: 250000
         max:
           type: number
           nullable: true
-          description: Maximum price (range)
+          description: Maximum price when the price is a range (block sale, holiday rental, new development)
         fees:
           type: number
           nullable: true
-          description: Rental fees paid by the tenant
+          description: 'Rental: provision for charges, i.e. the recoverable service charges the tenant pays on top of the rent. Not an agency commission (see `commission`)'
         unit:
           type: integer
           nullable: true
-          description: Price unit
+          description: Area unit when the price is given per area unit (price per m² for commercial premises...) → catalog `unit_area`; `null` = total price
         period:
           type: integer
           nullable: true
-          description: Rent periodicity → catalog `property_period`
+          description: Periodicity of the rent (rental, holiday rental) or of the current rent `tenant` → catalog `property_period`
         hide:
           type: boolean
-          description: Price hidden on listings
+          description: 'Price on request: the price must not be displayed on listings'
         inventory:
           type: number
           nullable: true
-          description: Inventory fees (rental)
+          description: 'Rental: check-in inventory costs paid by the tenant'
         deposit:
           type: number
           nullable: true
-          description: Security deposit (rental)
+          description: Security deposit (rental, holiday rental)
         currency:
           type: string
           description: ISO 4217 currency
@@ -4187,11 +4236,11 @@ components:
         commission:
           type: number
           nullable: true
-          description: Fees paid by the buyer
+          description: Agency commission paid by the buyer (sale) or the tenant (rental)
         transfer_tax:
           type: number
           nullable: true
-          description: Transfer tax (notary fees)
+          description: 'Transfer tax: estimate of the notary fees and transfer duties'
         contribution:
           type: number
           nullable: true
@@ -4217,22 +4266,22 @@ components:
           description: Original currency (if `currency` was requested)
         commission_owner:
           type: number
-          description: Fees paid by the seller (shared display in France or `properties_private` scope)
+          description: Agency commission paid by the owner, seller or landlord (shared display in France or `properties_private` scope)
         commission_customer:
           type: number
-          description: Fees paid by the buyer (shared display in France or `properties_private` scope)
+          description: Agency commission paid by the buyer or the tenant, same as `commission` (shared display in France or `properties_private` scope)
         net_seller:
           type: number
-          description: 🔒 **Private** — Net seller price. Only filled with the `properties_private` scope
+          description: '🔒 **Private** — Net seller: amount left to the owner after deducting the commission they pay. Only filled with the `properties_private` scope'
         sold:
           type: number
           nullable: true
-          description: 🔒 **Private** — Final sale price. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Final sale price (or rent). Filled with the `properties_private` scope, or for a property sold by the agency (status 30)
         sold_at:
           type: string
           format: date
           nullable: true
-          description: 🔒 **Private** — Sale date. Only filled with the `properties_private` scope
+          description: 🔒 **Private** — Sale date. Filled with the `properties_private` scope, or for a property sold by the agency (status 30)
           example: '2024-06-15'
         estimation:
           type: object
@@ -4249,7 +4298,7 @@ components:
         negotiable:
           type: number
           nullable: true
-          description: 🔒 **Private** — Negotiable price. Only filled with the `properties_private` scope
+          description: '🔒 **Private** — Negotiable amount: lowest acceptable price (sale: commission included; rental: commission excluded), used for matching. Only filled with the `properties_private` scope'
 
     PropertyPicture:
       type: object
@@ -4260,7 +4309,7 @@ components:
           example: 66321497
         type_id:
           type: integer
-          description: Picture type
+          description: 'Type: 1 picture, 2 video, 3 YouTube video, 5 360° panorama'
         rank:
           type: integer
           description: Display order
@@ -4428,7 +4477,7 @@ components:
             type:
               type: integer
               nullable: true
-              description: Floor type → catalog `property_floor`
+              description: Floor → catalog `property_floor`
             value:
               type: integer
               nullable: true
@@ -4449,15 +4498,25 @@ components:
             type:
               type: integer
               nullable: true
-              description: Lot type
+              description: Id of the unit (lot of a building) the room belongs to
             rank:
-              type: integer
+              type: string
               nullable: true
-              description: Rank
+              description: Unit number
             name:
               type: array
-              description: Name
-              items: {type: string}
+              description: Unit name per language
+              items:
+                type: object
+                properties:
+                  language:
+                    type: string
+                    description: Language code
+                    example: fr_FR
+                  name:
+                    type: string
+                    nullable: true
+                    description: Name
         beds:
           type: object
           properties:
@@ -4674,34 +4733,34 @@ components:
             value:
               type: number
               nullable: true
-              description: Price or rent
+              description: 'Displayed price (sale: buyer''s commission included) or rent excluding charges'
             max:
               type: number
               nullable: true
-              description: Maximum price
+              description: Maximum price when the price is a range
             unit:
               type: integer
               nullable: true
-              description: Price unit
+              description: Area unit of a price given per area unit (price per m²...) → catalog `unit_area`
             period:
               type: integer
               nullable: true
-              description: Rent periodicity → catalog `property_period`
+              description: Periodicity of the rent or of the current rent `tenant` → catalog `property_period`
             fees:
               type: number
               nullable: true
-              description: Rental fees
+              description: 'Rental: provision for charges the tenant pays on top of the rent (not a commission)'
             currency:
               type: string
               description: ISO 4217 currency
               example: EUR
             hide:
               type: boolean
-              description: Hide the price
+              description: Price on request (price not displayed on listings)
             inventory:
               type: number
               nullable: true
-              description: Inventory fees
+              description: 'Rental: check-in inventory costs paid by the tenant'
             deposit:
               type: number
               nullable: true
@@ -4721,11 +4780,11 @@ components:
             commission_customer:
               type: number
               nullable: true
-              description: Fees paid by the buyer (returned as `commission` when reading)
+              description: Agency commission paid by the buyer or the tenant (returned as `commission` when reading)
             commission_owner:
               type: number
               nullable: true
-              description: Fees paid by the seller
+              description: Agency commission paid by the owner, seller or landlord
             net_seller:
               type: number
               nullable: true
@@ -4733,7 +4792,7 @@ components:
             transfer_tax:
               type: number
               nullable: true
-              description: Transfer tax
+              description: Transfer tax (estimate of the notary fees and transfer duties)
             vat:
               description: '`true` = VAT included, `false` = VAT excluded, `null` = not set (1 = excluded and 2 = included also accepted)'
               anyOf:
@@ -4826,7 +4885,7 @@ components:
           properties:
             type:
               type: integer
-              description: Floor type (sets the floor number) → catalog `property_floor`
+              description: Floor (sets the floor number) → catalog `property_floor`
             floors:
               type: integer
               description: Number of floors of the building
@@ -4998,7 +5057,7 @@ components:
                   properties:
                     type:
                       type: integer
-                      description: Floor type → catalog `property_floor`
+                      description: Floor → catalog `property_floor`
                     value:
                       type: integer
                       description: Floor number
@@ -5287,7 +5346,7 @@ components:
         comment:
           type: string
           nullable: true
-          description: Comment
+          description: Private comment
         relationship:
           type: string
           nullable: true
@@ -5303,7 +5362,7 @@ components:
         website:
           type: string
           nullable: true
-          description: Website (without `http://`)
+          description: Website (without `http://` or `https://`)
         mailing:
           type: object
           description: Postal mailing
@@ -5376,7 +5435,7 @@ components:
                 example: '2024-06-15 14:30:00'
         optin:
           type: object
-          description: Opt-in (legacy)
+          description: 'Opt-in (deprecated, always empty: see `subscriptions`)'
           properties:
             type:
               type: string
@@ -5390,7 +5449,7 @@ components:
               example: '2024-06-15'
         optout:
           type: object
-          description: Opt-out (legacy)
+          description: 'Opt-out (deprecated, always empty: see `subscriptions`)'
           properties:
             type:
               type: string
@@ -5404,19 +5463,19 @@ components:
               example: '2024-06-15'
         action:
           type: object
-          description: Last marketing actions (`incoming_action_at` / `outgoing_action_at` fields when writing)
+          description: Last actions with the contact (`incoming_action_at` / `outgoing_action_at` fields when writing)
           properties:
             incoming_at:
               type: string
               format: date
               nullable: true
-              description: Last incoming action
+              description: Last incoming action, from the contact (e.g. extranet login)
               example: '2024-06-15'
             outgoing_at:
               type: string
               format: date
               nullable: true
-              description: Last outgoing action
+              description: Last outgoing action, towards the contact (e.g. e-mailing campaign sent)
               example: '2024-06-15'
         removal:
           type: object
@@ -5514,7 +5573,7 @@ components:
 
     ContactInput:
       type: object
-      description: Contact (write). Only the fields sent are changed; an empty value (`null`, `""`, `0`) is ignored and does not clear the field.
+      description: Contact (write). Only the fields sent are changed; an empty value (`null`, `""`, `0`) is ignored and does not clear the field, except for `password`, `language`, `contact_method`, `incoming_action_at` / `outgoing_action_at` and `tags_customized` (see each field).
       properties:
         user:
           type: integer
@@ -5637,7 +5696,7 @@ components:
           description: Website
         language:
           type: array
-          description: 'Spoken languages (ISO 639-1). Default on creation: `["en"]`'
+          description: 'Spoken languages (ISO 639-1). Default on creation: `["en"]`; an empty array (or `null`) resets it to `["en"]`'
           items: {type: string}
           example: [fr, en]
         currency:
@@ -5645,32 +5704,32 @@ components:
           description: Currency (ISO 4217)
         contact_method:
           type: array
-          description: Preferred contact methods (2 max; 1 phone, 2 e-mail, 3 SMS) → catalog `contact_method`
+          description: Preferred contact methods (2 max; 1 phone, 2 e-mail, 3 SMS, other values ignored). `[]` clears them → catalog `contact_method`
           items: {type: integer}
         incoming_action_at:
           type: string
           format: date
           nullable: true
-          description: Last incoming action (returned as `action.incoming_at`)
+          description: Last incoming action (returned as `action.incoming_at`). `""` clears the date; any value cancels the contact's pending GDPR deletion
           example: '2024-06-15'
         outgoing_action_at:
           type: string
           format: date
           nullable: true
-          description: Last outgoing action (returned as `action.outgoing_at`)
+          description: Last outgoing action (returned as `action.outgoing_at`). `""` clears the date; any value cancels the contact's pending GDPR deletion
           example: '2024-06-15'
         mailing:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Postal mailing: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
+          description: 'Postal mailing: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (handled as 3 refused) → catalog `subscription`'
         emailing:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Newsletter: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
+          description: 'Newsletter: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (handled as 3 refused) → catalog `subscription`'
         magazine:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Print magazine: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (mail sent back) → catalog `subscription`'
+          description: 'Print magazine: 1 not subscribed, 2 subscribed, 3 refused, 4 returned (handled as 3 refused) → catalog `subscription`'
         tags_customized:
           type: array
           nullable: true
@@ -5699,7 +5758,7 @@ components:
         ranking:
           type: string
           nullable: true
-          description: Rating → catalog `request_rating`
+          description: 'Classification: 1 very active, 2 active, 3 normal, 4 low, 5 very low → catalog `request_rating`'
         last_action:
           type: string
           format: date
@@ -5798,7 +5857,7 @@ components:
         coordinates:
           type: string
           nullable: true
-          description: Area drawn on the map (list of `lat lng` points)
+          description: 'Areas drawn on the map: one or more `(lat lng,lat lng,...)` polygons separated by commas'
         sector:
           type: string
           nullable: true
@@ -5812,13 +5871,13 @@ components:
           enum: ['1', '2', '3']
           description: 'Rooms operator: 1 equal, 2 at least, 3 at most'
         rooms:
-          description: Rooms (`0` when the criterion is about bedrooms)
+          description: Rooms (`0` when the criterion is about bedrooms or guests)
           anyOf:
           - {type: string, nullable: true}
           - {type: integer}
           example: '3.0'
         bedrooms:
-          description: Bedrooms (`0` when the criterion is about rooms)
+          description: Bedrooms (`0` when the criterion is about rooms). Holds the number of guests when the criterion is about guests (holiday rental)
           anyOf:
           - {type: string, nullable: true}
           - {type: integer}
@@ -5892,7 +5951,7 @@ components:
             type:
               type: string
               nullable: true
-              description: Floor type → catalog `property_floor`
+              description: Floor → catalog `property_floor`
             value:
               description: Floor number or `"last"`
               anyOf:
@@ -5994,7 +6053,7 @@ components:
         ranking:
           type: integer
           nullable: true
-          description: Rating (1 to 5) → catalog `request_rating`
+          description: 'Classification: 1 very active, 2 active, 3 normal, 4 low, 5 very low → catalog `request_rating`'
         emailing:
           type: object
           properties:
@@ -6012,7 +6071,7 @@ components:
           description: Subcategory → catalog `property_subcategory`
         types:
           type: array
-          description: Property types (1 to 10) → catalog `property_type`
+          description: Property types (1 to 10; an empty list does not clear the criterion) → catalog `property_type`
           items: {type: integer}
           example: [1, 2]
         subtype:
@@ -6139,7 +6198,7 @@ components:
             type:
               type: integer
               nullable: true
-              description: Floor type (when `value` is not sent) → catalog `property_floor`
+              description: Floor (used when `value` is missing or not recognised) → catalog `property_floor`
         areas:
           type: array
           nullable: true
@@ -6161,19 +6220,19 @@ components:
                   description: Minimum area
         proximities:
           type: array
-          description: Proximities (replaces the list) → catalog `property_proximity`
+          description: Proximities (replaces the list; an empty list does not clear it) → catalog `property_proximity`
           items: {type: integer}
         services:
           type: array
-          description: Services (replaces the list) → catalog `property_service`
+          description: Services (replaces the list; an empty list does not clear it) → catalog `property_service`
           items: {type: integer}
         activities:
           type: array
-          description: Activities (replaces the list) → catalog `property_activity`
+          description: Activities (replaces the list; an empty list does not clear it) → catalog `property_activity`
           items: {type: integer}
         tags:
           type: array
-          description: Tags (replaces the list) → catalog `tags`
+          description: Tags (replaces the list; an empty list does not clear it) → catalog `tags`
           items: {type: integer}
         tags_customized:
           type: array
@@ -6237,7 +6296,7 @@ components:
         reference:
           type: string
           nullable: true
-          description: Your lead reference
+          description: Lead reference at the partner that sent it (`provider`); empty for a lead entered in Apimo
         lastname:
           type: string
           nullable: true
@@ -6297,7 +6356,7 @@ components:
         property_city:
           type: string
           nullable: true
-          description: Property city (text sent)
+          description: 'Property city: city id when the city sent was recognised (types other than 2 and 4), otherwise the text sent'
         property_country:
           type: string
           nullable: true
@@ -6498,7 +6557,7 @@ components:
 
     LeadInput:
       type: object
-      description: 'Lead (write). **An update replaces the lead**: fields not sent are emptied (`date` goes back to now, `currency` to EUR), except `reference`, `provider`, `user`, `contact`, `request`, `type` and `step`.'
+      description: 'Lead (write). **An update replaces the lead**: fields not sent are emptied (`date` goes back to now, `currency` to EUR), except `reference`, `provider`, `user`, `contact`, `request`, `type`, `step`, the linked property (`property_reference`), the rooms/bedrooms criteria (`room_*`, `bedroom_*`) and the searched areas (`locations`, `property_city` cities).'
       properties:
         reference:
           type: string
@@ -6587,7 +6646,7 @@ components:
           example: '2024-06-15'
         property_reference:
           type: string
-          description: 'Related property: Apimo id, mandate number or property reference. When not found, the reference is added to the message'
+          description: 'Related property: Apimo id, mandate number or property reference. When not found, the reference is added to the message; ignored when the lead is already linked to a property'
         property_category:
           type: integer
           enum: [1, 2, 3, 4, 5, 6]
@@ -6645,7 +6704,7 @@ components:
           example: FR
         property_city:
           type: string
-          description: 'Searched cities: comma-separated ids or names (types 2 and 4)'
+          description: 'Comma-separated city ids or names (names looked up in the agency''s country). Types 2 and 4: searched cities; other types: property city (the first one recognised)'
           example: Nice,Cannes
         locations:
           type: array
@@ -6776,7 +6835,7 @@ components:
               rating:
                 type: string
                 nullable: true
-                description: Contact opinion (1 not interested ... 5 very interested) → catalog `action_assessment`
+                description: Contact opinion (1 not interested ... 5 very interested, 6 cancelled, 7 no opinion) → catalog `action_assessment`
               assessment:
                 type: string
                 nullable: true
@@ -6900,7 +6959,7 @@ components:
           example: '12345'
         step:
           type: string
-          description: Step (0 project, 1 offer, 2 preliminary contract, 3 deed scheduled, 4 completion, 5 cancelled) → catalog `contract_step`
+          description: Step (0 project, 1 offer, 2 sale or rental contract, 3 deed scheduled, 4 completion (closed / collected), 5 cancelled) → catalog `contract_step`
         agency:
           type: string
           description: Agency
@@ -6915,7 +6974,7 @@ components:
           example: EUR
         price:
           type: string
-          description: Price (decimal number as a string)
+          description: Sale price or rent (decimal number as a string)
           example: '250000'
         price_net:
           type: string
@@ -6924,32 +6983,32 @@ components:
         commission:
           type: string
           nullable: true
-          description: Total fees (decimal number as a string)
+          description: 'Total deal commission, VAT incl. (sale: price − net seller price; rental: owner + tenant commission) (decimal number as a string)'
         commission_agency:
           type: string
           nullable: true
-          description: Agency fees (decimal number as a string)
+          description: 'Agency commission collected, VAT incl.: share of the deal commission kept by the agency (decimal number as a string)'
         commission_owner:
           type: string
           nullable: true
-          description: Fees paid by the seller (decimal number as a string)
+          description: 'Rental: agency commission paid by the owner (landlord), VAT incl. (decimal number as a string)'
         commission_customer:
           type: string
           nullable: true
-          description: Fees paid by the buyer (decimal number as a string)
+          description: 'Rental: agency commission paid by the tenant, VAT incl. (decimal number as a string)'
         vat:
           type: string
           nullable: true
-          description: VAT amount (decimal number as a string)
+          description: VAT on the agency commission collected `commission_agency` (decimal number as a string)
         vat_rate:
           type: string
           nullable: true
-          description: VAT rate in % (decimal number as a string)
+          description: VAT rate applied to the agency commission, in % (decimal number as a string)
           example: '20.00'
         deposit:
           type: string
           nullable: true
-          description: Deposit (decimal number as a string)
+          description: Escrow deposit (sale) or security deposit (rental) (decimal number as a string)
         project_at:
           type: string
           format: date
@@ -6990,7 +7049,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: Deed date
+          description: Deed or lease signing date
           example: '2024-06-15'
         collected_at:
           type: string
@@ -7002,7 +7061,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: Legal notice date
+          description: Tax notice date (French agencies only)
           example: '2024-06-15'
         canceled_at:
           type: string
@@ -7047,7 +7106,7 @@ components:
             amount:
               type: number
               nullable: true
-              description: Invoiced amount
+              description: Invoiced amount excl. VAT (agency commission collected, excl. VAT)
             reference:
               type: string
               nullable: true
@@ -7063,10 +7122,10 @@ components:
                 description: Contact
               type:
                 type: string
-                description: Role (buyer, seller, notary...) → catalog `contract_contact`
+                description: Role (customer, owner, notary, bank...) → catalog `contract_contact`
         entries:
           type: array
-          description: Entries (fee split)
+          description: Entries (split of the agency commission)
           items:
             type: object
             properties:
@@ -7091,7 +7150,7 @@ components:
                 description: User
               type:
                 type: string
-                description: Type (fees, referral, turnover...) → catalog `contract_product`
+                description: Type (commission, referral, expenses, turnover...) → catalog `contract_product`
               amount:
                 type: string
                 description: Amount excluding VAT (decimal number as a string)
@@ -7191,7 +7250,7 @@ components:
 
     ContractInput:
       type: object
-      description: Contract (write). Only the fields sent are changed; an empty value (`null`, `""`, `0`) is ignored and does not clear the field.
+      description: 'Contract (write). Only the fields sent are changed; a `null` field is ignored. An empty string `""` clears the field and `0` clears an amount (`price` is mandatory; `step: 0` = project).'
       properties:
         price:
           type: number
@@ -7213,25 +7272,25 @@ components:
           description: Net seller price
         commission:
           type: number
-          description: Total fees
+          description: 'Total deal commission, VAT incl. (sale: price − net seller price; rental: owner + tenant commission)'
         commission_agency:
           type: number
-          description: Agency fees
+          description: Agency commission collected, VAT incl. (share of the deal commission kept by the agency)
         commission_owner:
           type: number
-          description: Fees paid by the seller
+          description: 'Rental: agency commission paid by the owner (landlord), VAT incl.'
         commission_customer:
           type: number
-          description: Fees paid by the buyer
+          description: 'Rental: agency commission paid by the tenant, VAT incl.'
         vat:
           type: number
-          description: VAT amount
+          description: VAT on the agency commission collected `commission_agency`
         vat_rate:
           type: number
-          description: VAT rate in %
+          description: VAT rate applied to the agency commission, in %
         deposit:
           type: number
-          description: Deposit
+          description: Escrow deposit (sale) or security deposit (rental)
         project_at:
           type: string
           format: date
@@ -7265,7 +7324,7 @@ components:
         contract_at:
           type: string
           format: date
-          description: Deed date
+          description: Deed or lease signing date
           example: '2024-06-15'
         collected_at:
           type: string
@@ -7275,7 +7334,7 @@ components:
         legal_notice_at:
           type: string
           format: date
-          description: Legal notice date
+          description: Tax notice date (French agencies only)
           example: '2024-06-15'
         canceled_at:
           type: string
@@ -7322,7 +7381,7 @@ components:
             amount:
               type: number
               nullable: true
-              description: Invoiced amount
+              description: Invoiced amount excl. VAT (agency commission collected, excl. VAT)
             reference:
               type: string
               nullable: true
@@ -7379,6 +7438,123 @@ components:
                 type: integer
                 nullable: true
                 description: 'Agency (default: the user''s agency)'
+
+    Book:
+      type: object
+      description: Register entry (listing agreement register, management, escrow...)
+      properties:
+        id:
+          type: integer
+          description: Entry id
+          example: 48012
+        user:
+          type: string
+          description: User (agent) holding the entry
+          example: '3896'
+        step:
+          type: string
+          nullable: true
+          description: 'Step: 1 reservation (number reserved), 2 signed, 3 canceled, 4 closed (always 4 for the Escrow and AML/CFT registers) → catalog `book_step`'
+          example: '2'
+        type:
+          type: string
+          nullable: true
+          description: 'Register: 1 transaction (listing agreement register), 2 management, 3 search, 4 escrow, 5 delegation, 6 AML/CFT (anti-money laundering) → catalog `book_type`'
+          example: '1'
+        subtype:
+          type: string
+          nullable: true
+          description: 'Agreement or operation type, depending on the register. Transaction: 1 non-exclusive listing agreement, 2 co-exclusive, 3 exclusive, 4 inter-agency, 5 semi-exclusive, 14 search agreement, 15 rental agreement. Management: 20 rental management agreement, 21 condominium management agreement. Escrow: 43 sale, 44 transfer of shares. AML/CFT: 60 know your customer. These values are not exposed by `GET /catalogs`'
+          example: '3'
+        contracted_at:
+          type: string
+          format: date
+          nullable: true
+          description: Signature date
+          example: '2026-03-02'
+        start_at:
+          type: string
+          format: date
+          nullable: true
+          description: Agreement start date
+          example: '2026-03-02'
+        end_at:
+          type: string
+          format: date
+          nullable: true
+          description: Agreement end date
+          example: '2026-06-02'
+        reference:
+          type: string
+          description: Register number, assigned sequentially per company (the Transaction, Search and Delegation registers share the same numbering)
+          example: '1254'
+        contact:
+          type: string
+          nullable: true
+          description: Client contact (contact id) used to pre-fill `owner`
+          example: '845120'
+        owner:
+          type: string
+          nullable: true
+          description: 'Client: name and details entered on the entry (principal or condominium for agreements)'
+        property:
+          type: string
+          nullable: true
+          description: Linked property (Apimo property id)
+          example: '181297'
+        property_type:
+          type: string
+          nullable: true
+          description: Property type → catalog `property_type`
+          example: '1'
+        property_address:
+          type: string
+          nullable: true
+          description: Property address
+        property_city:
+          type: object
+          nullable: true
+          description: Property city
+          properties:
+            id:
+              type: string
+              description: City id
+              example: '2123'
+            name:
+              type: string
+              nullable: true
+              description: City name
+              example: Nice
+            zipcode:
+              type: string
+              nullable: true
+              description: Zip code
+              example: '06000'
+        property_country:
+          type: string
+          nullable: true
+          description: Property country, ISO 3166-1 alpha-2 code
+          example: FR
+        comment:
+          type: string
+          nullable: true
+          description: Comment
+        created_at:
+          type: string
+          description: Creation date (for the Transaction and Management registers, date the number was reserved)
+          example: '2026-02-27 10:12:44'
+        updated_at:
+          type: string
+          description: Last update date
+          example: '2026-03-02 17:40:03'
+        created_by:
+          type: string
+          description: Created by (user id)
+          example: '3896'
+        updated_by:
+          type: string
+          description: Updated by (user id)
+          example: '3896'
 
     Residence:
       type: object
@@ -7508,7 +7684,7 @@ components:
                 description: Contact
               type:
                 type: string
-                description: Role (co-owner, caretaker, property manager...)
+                description: Role (owner-occupier, tenant, caretaker, property manager...) → catalog `occupant`
               shares:
                 type: string
                 nullable: true
@@ -7539,11 +7715,11 @@ components:
                       type:
                         type: integer
                         nullable: true
-                        description: Floor type
+                        description: Floor → catalog `property_floor`
                       value:
                         type: integer
                         nullable: true
-                        description: Floor number
+                        description: Floor number (`null` for the ground floor and basements)
               comment:
                 type: string
                 nullable: true
