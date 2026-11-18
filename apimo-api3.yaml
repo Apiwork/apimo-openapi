@@ -4479,9 +4479,10 @@ components:
               nullable: true
               description: Étage → catalogue `property_floor`
             value:
-              type: integer
-              nullable: true
-              description: Numéro d'étage
+              description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
+              anyOf:
+              - {type: integer, nullable: true}
+              - {type: string}
         orientations:
           type: array
           description: Orientations → catalogue `property_orientation`
@@ -5953,7 +5954,7 @@ components:
               nullable: true
               description: Étage → catalogue `property_floor`
             value:
-              description: Numéro d'étage ou `"last"`
+              description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
               anyOf:
               - {type: integer, nullable: true}
               - {type: string}
@@ -7717,9 +7718,10 @@ components:
                         nullable: true
                         description: Étage → catalogue `property_floor`
                       value:
-                        type: integer
-                        nullable: true
-                        description: Numéro d'étage (`null` pour le rez-de-chaussée et les sous-sols)
+                        description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
+                        anyOf:
+                        - {type: integer, nullable: true}
+                        - {type: string}
               comment:
                 type: string
                 nullable: true

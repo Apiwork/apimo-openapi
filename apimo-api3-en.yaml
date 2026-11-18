@@ -4479,9 +4479,10 @@ components:
               nullable: true
               description: Floor → catalog `property_floor`
             value:
-              type: integer
-              nullable: true
-              description: Floor number
+              description: 'Floor number (`null` for the ground floor and basements) or `"last"` for the top floor'
+              anyOf:
+              - {type: integer, nullable: true}
+              - {type: string}
         orientations:
           type: array
           description: Orientations → catalog `property_orientation`
@@ -5953,7 +5954,7 @@ components:
               nullable: true
               description: Floor → catalog `property_floor`
             value:
-              description: Floor number or `"last"`
+              description: 'Floor number (`null` for the ground floor and basements) or `"last"` for the top floor'
               anyOf:
               - {type: integer, nullable: true}
               - {type: string}
@@ -7717,9 +7718,10 @@ components:
                         nullable: true
                         description: Floor → catalog `property_floor`
                       value:
-                        type: integer
-                        nullable: true
-                        description: Floor number (`null` for the ground floor and basements)
+                        description: 'Floor number (`null` for the ground floor and basements) or `"last"` for the top floor'
+                        anyOf:
+                        - {type: integer, nullable: true}
+                        - {type: string}
               comment:
                 type: string
                 nullable: true
