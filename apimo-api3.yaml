@@ -30,6 +30,7 @@ info:
     | `actions` / `actions_write` | Lecture / écriture des actions (agenda, historique) |
     | `contracts` / `contracts_write` | Lecture / écriture des contrats |
     | `residences` | Lecture des résidences |
+    | `books` | Lecture des registres (registre des mandats, gestion, séquestre...) |
     | `catalogs_private`, `catalogs_general` | Catalogues supplémentaires |
 
     Les routes et les champs marqués 🔒 **Privé** ne sont accessibles ou remplis qu'avec un scope privé (`properties_private`, `agencies_private`).
@@ -97,6 +98,8 @@ tags:
   description: Contrats (ventes, locations) et écritures
 - name: Residences
   description: Résidences et immeubles
+- name: Books
+  description: Registres de l'agence (registre des mandats, gestion, séquestre...)
 
 paths:
 
@@ -147,7 +150,7 @@ paths:
                   timestamp:
                     type: integer
                     nullable: true
-                    description: Timestamp UNIX de la mise à jour la plus récente de la page (à repasser en paramètre `timestamp` pour la synchro incrémentale)
+                    description: Timestamp UNIX de l'appel
                   feeds:
                     type: array
                     description: Connexions
@@ -220,8 +223,8 @@ paths:
       - {$ref: '#/components/parameters/Timestamp'}
       - name: active
         in: query
-        schema: {type: boolean, default: true}
-        description: '`false` : agences désactivées uniquement'
+        schema: {type: integer, enum: [0, 1], default: 1}
+        description: '`0` : agences désactivées uniquement'
       - name: accountId
         in: query
         schema: {type: integer}
@@ -522,7 +525,7 @@ paths:
       operationId: listProperties
       summary: List the properties
       description: |
-        Liste les biens de l'agence publiés pour vous. Par défaut : étape 1 (en cours) et groupes 1 et 3. Avec le scope `properties_private`, tous les biens de l'agence et leurs champs privés, ou seulement la sélection d'un portail avec `provider`.
+        Liste les biens de l'agence publiés pour vous. Par défaut : étape 1 (en cours) et groupes 1 (Général) et 3 (Délégation). Avec le scope `properties_private`, tous les biens de l'agence (pas seulement ceux publiés pour vous) et leurs champs privés, les autres groupes avec `group[]`, ou seulement la sélection d'un portail avec `provider`.
 
         Plusieurs agences en un appel : `agency_id` = `101_102_103`.
 
@@ -562,7 +565,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: '🔒 **Privé** — Groupes (sans `properties_private` : 1 et 3)'
+        description: '🔒 **Privé** — Groupes → catalogue `property_group`. Pris en compte uniquement avec `properties_private` ; sinon, ou sans ce filtre : groupes 1 (Général) et 3 (Délégation)'
         style: form
         explode: true
       - name: user_id[]
@@ -1544,7 +1547,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: Types d'action
+        description: Types d'action → catalogue `action_type`
         style: form
         explode: true
       responses:
@@ -1591,7 +1594,7 @@ paths:
         schema:
           type: array
           items: {type: integer}
-        description: Types d'action
+        description: Types d'action → catalogue `action_type`
         style: form
         explode: true
       responses:
@@ -2183,6 +2186,52 @@ paths:
         '429': {$ref: '#/components/responses/TooManyRequests'}
 
   # ─────────────────────────────────────────
+  # BOOKS
+  # ─────────────────────────────────────────
+  /agencies/{agency_id}/books:
+    get:
+      tags: [Books]
+      operationId: listBooks
+      summary: List the registers
+      description: |
+        Liste les entrées des registres de l'agence : registre des mandats (transaction), gestion, recherche, séquestre, délégation et LCB-FT. Liste paginée, triée par date de mise à jour croissante. Pour une synchronisation incrémentale, repassez dans `timestamp` la valeur `timestamp` reçue lors de l'appel précédent.
+
+        Quand une entrée est liée à un bien, Apimo recopie son numéro, son type et ses dates dans le mandat du bien (`agreement` d'un bien).
+
+        **Scope** : `books`.
+      parameters:
+      - {$ref: '#/components/parameters/AgencyId'}
+      - {$ref: '#/components/parameters/Limit'}
+      - {$ref: '#/components/parameters/Offset'}
+      - {$ref: '#/components/parameters/Timestamp'}
+      - name: book_id
+        in: query
+        schema: {type: integer}
+        description: Ne renvoie que l'entrée portant cet identifiant
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  books:
+                    type: array
+                    description: Entrées des registres
+                    items: {$ref: '#/components/schemas/Book'}
+                  total_items:
+                    type: integer
+                    description: Nombre total d'éléments (avant pagination)
+                  timestamp:
+                    type: integer
+                    nullable: true
+                    description: Timestamp UNIX de la mise à jour la plus récente de la page (à repasser en paramètre `timestamp` pour la synchro incrémentale)
+        '401': {$ref: '#/components/responses/Unauthorized'}
+        '403': {$ref: '#/components/responses/Forbidden'}
+        '429': {$ref: '#/components/responses/TooManyRequests'}
+
+  # ─────────────────────────────────────────
   # RESIDENCES
   # ─────────────────────────────────────────
   /agencies/{agency_id}/residences:
@@ -2520,12 +2569,12 @@ components:
           example: '101'
         settings:
           type: array
-          description: Paramètres de la connexion
+          description: Valeurs saisies par l'agence à l'activation de la connexion, dans l'ordre des champs définis sur votre compte partenaire (ex. identifiant client)
           items: {type: string}
         last_lead_at:
           type: string
           nullable: true
-          description: Date du dernier lead reçu de votre part pour cette agence
+          description: Date du dernier lead reçu de votre part pour cette agence (connexions sur une agence uniquement, sinon `null`)
           example: '2024-06-15 14:30:00'
 
     CatalogList:
@@ -2721,7 +2770,7 @@ components:
           description: URL de la première photo
         quality:
           type: integer
-          description: Score de qualité
+          description: Taux de remplissage moyen (0-100) des biens en cours de l'agence
         currency:
           type: string
           description: Devise ISO 4217
@@ -2729,7 +2778,7 @@ components:
         timetable:
           type: string
           nullable: true
-          description: Horaires d'ouverture
+          description: 'Horaires d''ouverture : créneaux `jour:HH:MM:HH:MM` séparés par des virgules (jour 1 = dimanche … 7 = samedi), ex. `2:09:00:12:00,2:14:00:18:00`'
         created_at:
           type: string
           description: Date de création
@@ -2746,7 +2795,7 @@ components:
           - {type: string}
         rates:
           type: array
-          description: Barème d'honoraires
+          description: Barème d'honoraires de la société de l'agence (identique pour toutes ses agences)
           items:
             type: object
             properties:
@@ -2769,11 +2818,11 @@ components:
               commission_price:
                 type: string
                 nullable: true
-                description: Honoraires fixes (nombre décimal en chaîne)
+                description: Honoraires fixes TTC (nombre décimal en chaîne)
               commission_rate:
                 type: string
                 nullable: true
-                description: Honoraires en % (nombre décimal en chaîne)
+                description: Honoraires en % du prix, TTC (nombre décimal en chaîne)
               comment:
                 type: string
                 nullable: true
@@ -3229,7 +3278,7 @@ components:
           example: 1
         group:
           type: integer
-          description: Groupe (1 = biens, 3 = autres... ; sans scope `properties_private` seuls les groupes 1 et 3 sont renvoyés) → catalogue `property_group`
+          description: 'Groupe : 1 Général, 2 Bourse, 3 Délégation, 4 Prospection, 5 Estimation, 6 Virtuel / off-market → catalogue `property_group`. Par défaut, seuls les groupes 1 et 3 sont renvoyés (voir le filtre `group[]`)'
           example: 1
         parent:
           type: integer
@@ -3412,11 +3461,11 @@ components:
         referral:
           type: string
           nullable: true
-          description: 🔒 **Privé** — Origine du mandat → catalogue `referral`. Rempli uniquement avec le scope `properties_private`
+          description: 🔒 **Privé** — Origine du bien, c'est-à-dire comment l'agence l'a obtenu (pige, apporteur, vitrine...) → catalogue `referral`. Rempli uniquement avec le scope `properties_private`
         subreferral:
           type: string
           nullable: true
-          description: 🔒 **Privé** — Sous-origine du mandat. Rempli uniquement avec le scope `properties_private`
+          description: '🔒 **Privé** — Origine précise : identifiant d''une sous-origine propre à l''agence, qui détaille `referral`. Rempli uniquement avec le scope `properties_private`'
         area:
           type: object
           description: Surfaces
@@ -3453,11 +3502,11 @@ components:
             width:
               type: string
               nullable: true
-              description: Largeur de façade du terrain (nombre décimal en chaîne)
+              description: Longueur du terrain en mètres, première valeur de « Longueur × Largeur » dans Apimo (nombre décimal en chaîne)
             height:
               type: string
               nullable: true
-              description: Profondeur du terrain (nombre décimal en chaîne)
+              description: Largeur du terrain en mètres, seconde valeur de « Longueur × Largeur » dans Apimo (nombre décimal en chaîne)
             serviced_plot:
               type: boolean
               description: Terrain viabilisé
@@ -3549,7 +3598,7 @@ components:
             fees:
               type: number
               nullable: true
-              description: Charges de copropriété
+              description: Charges de copropriété (charges de l'immeuble)
               example: 70
             period:
               type: integer
@@ -3605,7 +3654,7 @@ components:
             type:
               type: integer
               nullable: true
-              description: Type d'étage → catalogue `property_floor`
+              description: Étage (rez-de-chaussée, 1er, dernier étage, sous-sol...) → catalogue `property_floor`
             value:
               description: Numéro d'étage (0 = rez-de-chaussée) ou `"last"` pour le dernier étage
               anyOf:
@@ -3626,7 +3675,7 @@ components:
             device:
               type: integer
               nullable: true
-              description: Premier mode de chauffage → catalogue `property_heating_device`
+              description: Premier appareil de chauffage (radiateur, au sol, poêle...) → catalogue `property_heating_device`
             devices:
               type: array
               nullable: true
@@ -3690,11 +3739,11 @@ components:
         length:
           type: string
           nullable: true
-          description: Longueur (nombre décimal en chaîne)
+          description: Longueur du bâtiment en mètres (nombre décimal en chaîne ; pour un bateau, voir `boat.length`)
         height:
           type: string
           nullable: true
-          description: Hauteur (nombre décimal en chaîne)
+          description: Hauteur du bâtiment en mètres (nombre décimal en chaîne)
         url:
           type: string
           nullable: true
@@ -3914,7 +3963,7 @@ components:
                 example: '2024-06-15 14:30:00'
         referrals:
           type: array
-          description: Apporteurs d'affaires
+          description: Apporteurs d'affaires du bien et leur commission (seuls les apporteurs liés à un utilisateur sont renvoyés)
           items:
             type: object
             properties:
@@ -3931,18 +3980,18 @@ components:
               amount:
                 type: string
                 nullable: true
-                description: Montant (nombre décimal en chaîne)
+                description: Commission de l'apporteur en montant (nombre décimal en chaîne)
               rate:
                 type: string
                 nullable: true
-                description: Taux (nombre décimal en chaîne)
+                description: Commission de l'apporteur en pourcentage (nombre décimal en chaîne)
               comment:
                 type: string
                 nullable: true
                 description: Commentaire
               access_is:
                 type: integer
-                description: Accès à la fiche (1/0)
+                description: Accès à la fiche du bien accordé à l'apporteur (1/0)
               created_at:
                 type: string
                 description: Création
@@ -4044,7 +4093,7 @@ components:
               example: '2024-06-15 14:30:00'
             bid_min:
               type: number
-              description: Mise à prix
+              description: Enchère minimum (la mise à prix est dans `price.value`)
         shop:
           type: object
           description: Commerce (uniquement si `type` = 4)
@@ -4151,35 +4200,35 @@ components:
         value:
           type: number
           nullable: true
-          description: Prix (vente) ou loyer (location)
+          description: 'Prix affiché. Vente : prix payé par l''acquéreur, honoraires à sa charge inclus (sans ces honoraires en Allemagne, en Italie et au Portugal). Location : loyer hors charges (provision sur charges dans `fees`). Viager : valeur vénale. Enchère : mise à prix'
           example: 250000
         max:
           type: number
           nullable: true
-          description: Prix maximum (fourchette)
+          description: Prix maximum quand le prix est une fourchette (vente en bloc, location saisonnière, programme neuf)
         fees:
           type: number
           nullable: true
-          description: Honoraires de location à la charge du locataire
+          description: 'Location : provision sur charges, c''est-à-dire les charges locatives payées par le locataire en plus du loyer. Ce ne sont pas des honoraires d''agence (voir `commission`)'
         unit:
           type: integer
           nullable: true
-          description: Unité du prix
+          description: Unité de surface quand le prix est exprimé par unité de surface (prix au m² des locaux professionnels...) → catalogue `unit_area` ; `null` = prix global
         period:
           type: integer
           nullable: true
-          description: Périodicité du loyer → catalogue `property_period`
+          description: Périodicité du loyer (location, location saisonnière) ou du loyer en place `tenant` → catalogue `property_period`
         hide:
           type: boolean
-          description: Prix masqué sur les annonces
+          description: 'Prix sur demande : le prix ne doit pas être affiché sur les annonces'
         inventory:
           type: number
           nullable: true
-          description: Frais d'état des lieux (location)
+          description: 'Location : frais d''état des lieux à la charge du locataire'
         deposit:
           type: number
           nullable: true
-          description: Dépôt de garantie (location)
+          description: Dépôt de garantie (location, location saisonnière)
         currency:
           type: string
           description: Devise ISO 4217
@@ -4187,11 +4236,11 @@ components:
         commission:
           type: number
           nullable: true
-          description: Honoraires à la charge de l'acquéreur
+          description: Honoraires d'agence à la charge de l'acquéreur (vente) ou du locataire (location)
         transfer_tax:
           type: number
           nullable: true
-          description: Frais de mutation (notaire)
+          description: 'Droits d''enregistrement : estimation des frais de notaire et droits de mutation'
         contribution:
           type: number
           nullable: true
@@ -4217,22 +4266,22 @@ components:
           description: Devise d'origine (si `currency` est demandé en paramètre)
         commission_owner:
           type: number
-          description: Honoraires à la charge du vendeur (affichage partagé en France ou scope `properties_private`)
+          description: Honoraires d'agence à la charge du propriétaire, vendeur ou bailleur (affichage partagé en France ou scope `properties_private`)
         commission_customer:
           type: number
-          description: Honoraires à la charge de l'acquéreur (affichage partagé en France ou scope `properties_private`)
+          description: Honoraires d'agence à la charge de l'acquéreur ou du locataire, comme `commission` (affichage partagé en France ou scope `properties_private`)
         net_seller:
           type: number
-          description: 🔒 **Privé** — Prix net vendeur. Rempli uniquement avec le scope `properties_private`
+          description: '🔒 **Privé** — Net vendeur : montant qui revient au propriétaire après déduction de ses honoraires. Rempli uniquement avec le scope `properties_private`'
         sold:
           type: number
           nullable: true
-          description: 🔒 **Privé** — Prix de vente final. Rempli uniquement avec le scope `properties_private`
+          description: 🔒 **Privé** — Prix de vente (ou loyer) final. Rempli avec le scope `properties_private`, ou pour un bien vendu par l'agence (statut 30)
         sold_at:
           type: string
           format: date
           nullable: true
-          description: 🔒 **Privé** — Date de vente. Rempli uniquement avec le scope `properties_private`
+          description: 🔒 **Privé** — Date de vente. Rempli avec le scope `properties_private`, ou pour un bien vendu par l'agence (statut 30)
           example: '2024-06-15'
         estimation:
           type: object
@@ -4249,7 +4298,7 @@ components:
         negotiable:
           type: number
           nullable: true
-          description: 🔒 **Privé** — Prix négociable. Rempli uniquement avec le scope `properties_private`
+          description: '🔒 **Privé** — Montant négociable : prix minimum envisageable (vente : honoraires inclus ; location : hors honoraires), utilisé par les rapprochements. Rempli uniquement avec le scope `properties_private`'
 
     PropertyPicture:
       type: object
@@ -4260,7 +4309,7 @@ components:
           example: 66321497
         type_id:
           type: integer
-          description: Type de photo
+          description: 'Type : 1 photo, 2 vidéo, 3 vidéo YouTube, 5 photo panoramique 360°'
         rank:
           type: integer
           description: Ordre d'affichage
@@ -4428,11 +4477,12 @@ components:
             type:
               type: integer
               nullable: true
-              description: Type d'étage → catalogue `property_floor`
+              description: Étage → catalogue `property_floor`
             value:
-              type: integer
-              nullable: true
-              description: Numéro d'étage
+              description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
+              anyOf:
+              - {type: integer, nullable: true}
+              - {type: string}
         orientations:
           type: array
           description: Orientations → catalogue `property_orientation`
@@ -4449,15 +4499,25 @@ components:
             type:
               type: integer
               nullable: true
-              description: Type de lot
+              description: Identifiant du lot (logement d'un immeuble) auquel la pièce appartient
             rank:
-              type: integer
+              type: string
               nullable: true
-              description: Rang
+              description: Numéro du lot
             name:
               type: array
-              description: Nom
-              items: {type: string}
+              description: Nom du lot par langue
+              items:
+                type: object
+                properties:
+                  language:
+                    type: string
+                    description: Code langue
+                    example: fr_FR
+                  name:
+                    type: string
+                    nullable: true
+                    description: Nom
         beds:
           type: object
           properties:
@@ -4674,34 +4734,34 @@ components:
             value:
               type: number
               nullable: true
-              description: Prix ou loyer
+              description: 'Prix affiché (vente : honoraires acquéreur inclus) ou loyer hors charges'
             max:
               type: number
               nullable: true
-              description: Prix maximum
+              description: Prix maximum quand le prix est une fourchette
             unit:
               type: integer
               nullable: true
-              description: Unité du prix
+              description: Unité de surface d'un prix exprimé par unité de surface (prix au m²...) → catalogue `unit_area`
             period:
               type: integer
               nullable: true
-              description: Périodicité du loyer → catalogue `property_period`
+              description: Périodicité du loyer ou du loyer en place `tenant` → catalogue `property_period`
             fees:
               type: number
               nullable: true
-              description: Honoraires de location
+              description: 'Location : provision sur charges payée par le locataire en plus du loyer (pas des honoraires)'
             currency:
               type: string
               description: Devise ISO 4217
               example: EUR
             hide:
               type: boolean
-              description: Masquer le prix
+              description: Prix sur demande (prix non affiché sur les annonces)
             inventory:
               type: number
               nullable: true
-              description: Frais d'état des lieux
+              description: 'Location : frais d''état des lieux à la charge du locataire'
             deposit:
               type: number
               nullable: true
@@ -4721,11 +4781,11 @@ components:
             commission_customer:
               type: number
               nullable: true
-              description: Honoraires à la charge de l'acquéreur (renvoyés en `commission` en lecture)
+              description: Honoraires d'agence à la charge de l'acquéreur ou du locataire (renvoyés en `commission` en lecture)
             commission_owner:
               type: number
               nullable: true
-              description: Honoraires à la charge du vendeur
+              description: Honoraires d'agence à la charge du propriétaire, vendeur ou bailleur
             net_seller:
               type: number
               nullable: true
@@ -4733,7 +4793,7 @@ components:
             transfer_tax:
               type: number
               nullable: true
-              description: Frais de mutation
+              description: Droits d'enregistrement (estimation des frais de notaire et droits de mutation)
             vat:
               description: '`true` = TTC, `false` = HT, `null` = non renseigné (1 = HT et 2 = TTC aussi acceptés)'
               anyOf:
@@ -4826,7 +4886,7 @@ components:
           properties:
             type:
               type: integer
-              description: Type d'étage (détermine le numéro d'étage) → catalogue `property_floor`
+              description: Étage (détermine le numéro d'étage) → catalogue `property_floor`
             floors:
               type: integer
               description: Nombre d'étages de l'immeuble
@@ -4998,7 +5058,7 @@ components:
                   properties:
                     type:
                       type: integer
-                      description: Type d'étage → catalogue `property_floor`
+                      description: Étage → catalogue `property_floor`
                     value:
                       type: integer
                       description: Numéro d'étage
@@ -5287,7 +5347,7 @@ components:
         comment:
           type: string
           nullable: true
-          description: Commentaire
+          description: Commentaire privé
         relationship:
           type: string
           nullable: true
@@ -5303,7 +5363,7 @@ components:
         website:
           type: string
           nullable: true
-          description: Site web (sans `http://`)
+          description: Site web (sans `http://` ni `https://`)
         mailing:
           type: object
           description: Courrier postal
@@ -5376,7 +5436,7 @@ components:
                 example: '2024-06-15 14:30:00'
         optin:
           type: object
-          description: Opt-in (ancien format)
+          description: 'Opt-in (obsolète, toujours vide : voir `subscriptions`)'
           properties:
             type:
               type: string
@@ -5390,7 +5450,7 @@ components:
               example: '2024-06-15'
         optout:
           type: object
-          description: Opt-out (ancien format)
+          description: 'Opt-out (obsolète, toujours vide : voir `subscriptions`)'
           properties:
             type:
               type: string
@@ -5404,19 +5464,19 @@ components:
               example: '2024-06-15'
         action:
           type: object
-          description: Dernières actions marketing (champs `incoming_action_at` / `outgoing_action_at` en écriture)
+          description: Dernières actions avec le contact (champs `incoming_action_at` / `outgoing_action_at` en écriture)
           properties:
             incoming_at:
               type: string
               format: date
               nullable: true
-              description: Dernière action entrante
+              description: Dernière action entrante, venant du contact (ex. connexion à l'extranet)
               example: '2024-06-15'
             outgoing_at:
               type: string
               format: date
               nullable: true
-              description: Dernière action sortante
+              description: Dernière action sortante, vers le contact (ex. envoi d'une campagne e-mailing)
               example: '2024-06-15'
         removal:
           type: object
@@ -5514,7 +5574,7 @@ components:
 
     ContactInput:
       type: object
-      description: Contact (écriture). Seuls les champs envoyés sont modifiés ; une valeur vide (`null`, `""`, `0`) est ignorée et ne vide pas le champ.
+      description: Contact (écriture). Seuls les champs envoyés sont modifiés ; une valeur vide (`null`, `""`, `0`) est ignorée et ne vide pas le champ, sauf pour `password`, `language`, `contact_method`, `incoming_action_at` / `outgoing_action_at` et `tags_customized` (voir chaque champ).
       properties:
         user:
           type: integer
@@ -5637,7 +5697,7 @@ components:
           description: Site web
         language:
           type: array
-          description: 'Langues parlées (ISO 639-1). Défaut à la création : `["en"]`'
+          description: 'Langues parlées (ISO 639-1). Défaut à la création : `["en"]` ; un tableau vide (ou `null`) remet `["en"]`'
           items: {type: string}
           example: [fr, en]
         currency:
@@ -5645,32 +5705,32 @@ components:
           description: Devise (ISO 4217)
         contact_method:
           type: array
-          description: Moyens de contact préférés (2 maximum ; 1 téléphone, 2 e-mail, 3 SMS) → catalogue `contact_method`
+          description: Moyens de contact préférés (2 maximum ; 1 téléphone, 2 e-mail, 3 SMS, autres valeurs ignorées). `[]` les efface → catalogue `contact_method`
           items: {type: integer}
         incoming_action_at:
           type: string
           format: date
           nullable: true
-          description: Dernière action entrante (renvoyée dans `action.incoming_at`)
+          description: Dernière action entrante (renvoyée dans `action.incoming_at`). `""` efface la date ; tout envoi annule la mise en attente de suppression RGPD du contact
           example: '2024-06-15'
         outgoing_action_at:
           type: string
           format: date
           nullable: true
-          description: Dernière action sortante (renvoyée dans `action.outgoing_at`)
+          description: Dernière action sortante (renvoyée dans `action.outgoing_at`). `""` efface la date ; tout envoi annule la mise en attente de suppression RGPD du contact
           example: '2024-06-15'
         mailing:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Courrier postal : 1 non abonné, 2 abonné, 3 refusé, 4 retour (courrier revenu) → catalogue `subscription`'
+          description: 'Courrier postal : 1 non abonné, 2 abonné, 3 refusé, 4 retour (traité comme 3 refusé) → catalogue `subscription`'
         emailing:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Newsletter : 1 non abonné, 2 abonné, 3 refusé, 4 retour (courrier revenu) → catalogue `subscription`'
+          description: 'Newsletter : 1 non abonné, 2 abonné, 3 refusé, 4 retour (traité comme 3 refusé) → catalogue `subscription`'
         magazine:
           type: integer
           enum: [1, 2, 3, 4]
-          description: 'Magazine papier : 1 non abonné, 2 abonné, 3 refusé, 4 retour (courrier revenu) → catalogue `subscription`'
+          description: 'Magazine papier : 1 non abonné, 2 abonné, 3 refusé, 4 retour (traité comme 3 refusé) → catalogue `subscription`'
         tags_customized:
           type: array
           nullable: true
@@ -5699,7 +5759,7 @@ components:
         ranking:
           type: string
           nullable: true
-          description: Note → catalogue `request_rating`
+          description: 'Classification : 1 très actif, 2 actif, 3 normal, 4 peu actif, 5 très peu actif → catalogue `request_rating`'
         last_action:
           type: string
           format: date
@@ -5798,7 +5858,7 @@ components:
         coordinates:
           type: string
           nullable: true
-          description: Zone dessinée sur la carte (liste de points `lat lng`)
+          description: 'Zones dessinées sur la carte : un ou plusieurs polygones `(lat lng,lat lng,...)` séparés par des virgules'
         sector:
           type: string
           nullable: true
@@ -5812,13 +5872,13 @@ components:
           enum: ['1', '2', '3']
           description: 'Opérateur sur les pièces : 1 égal, 2 au moins, 3 au plus'
         rooms:
-          description: Pièces (`0` si le critère porte sur les chambres)
+          description: Pièces (`0` si le critère porte sur les chambres ou les invités)
           anyOf:
           - {type: string, nullable: true}
           - {type: integer}
           example: '3.0'
         bedrooms:
-          description: Chambres (`0` si le critère porte sur les pièces)
+          description: Chambres (`0` si le critère porte sur les pièces). Contient le nombre d'invités si le critère porte sur les invités (location saisonnière)
           anyOf:
           - {type: string, nullable: true}
           - {type: integer}
@@ -5892,9 +5952,9 @@ components:
             type:
               type: string
               nullable: true
-              description: Type d'étage → catalogue `property_floor`
+              description: Étage → catalogue `property_floor`
             value:
-              description: Numéro d'étage ou `"last"`
+              description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
               anyOf:
               - {type: integer, nullable: true}
               - {type: string}
@@ -5994,7 +6054,7 @@ components:
         ranking:
           type: integer
           nullable: true
-          description: Note (1 à 5) → catalogue `request_rating`
+          description: 'Classification : 1 très actif, 2 actif, 3 normal, 4 peu actif, 5 très peu actif → catalogue `request_rating`'
         emailing:
           type: object
           properties:
@@ -6012,7 +6072,7 @@ components:
           description: Sous-catégorie → catalogue `property_subcategory`
         types:
           type: array
-          description: Types de biens (1 à 10) → catalogue `property_type`
+          description: Types de biens (1 à 10 ; une liste vide ne vide pas le critère) → catalogue `property_type`
           items: {type: integer}
           example: [1, 2]
         subtype:
@@ -6139,7 +6199,7 @@ components:
             type:
               type: integer
               nullable: true
-              description: Type d'étage (si `value` n'est pas envoyé) → catalogue `property_floor`
+              description: Étage (utilisé si `value` est absent ou non reconnu) → catalogue `property_floor`
         areas:
           type: array
           nullable: true
@@ -6161,19 +6221,19 @@ components:
                   description: Surface minimum
         proximities:
           type: array
-          description: Proximités (remplace la liste) → catalogue `property_proximity`
+          description: Proximités (remplace la liste ; une liste vide ne la vide pas) → catalogue `property_proximity`
           items: {type: integer}
         services:
           type: array
-          description: Prestations (remplace la liste) → catalogue `property_service`
+          description: Prestations (remplace la liste ; une liste vide ne la vide pas) → catalogue `property_service`
           items: {type: integer}
         activities:
           type: array
-          description: Activités (remplace la liste) → catalogue `property_activity`
+          description: Activités (remplace la liste ; une liste vide ne la vide pas) → catalogue `property_activity`
           items: {type: integer}
         tags:
           type: array
-          description: Tags (remplace la liste) → catalogue `tags`
+          description: Tags (remplace la liste ; une liste vide ne la vide pas) → catalogue `tags`
           items: {type: integer}
         tags_customized:
           type: array
@@ -6237,7 +6297,7 @@ components:
         reference:
           type: string
           nullable: true
-          description: Votre référence du lead
+          description: Référence du lead chez le partenaire qui l'a envoyé (`provider`) ; vide pour un lead saisi dans Apimo
         lastname:
           type: string
           nullable: true
@@ -6297,7 +6357,7 @@ components:
         property_city:
           type: string
           nullable: true
-          description: Ville du bien (texte envoyé)
+          description: 'Ville du bien : identifiant de la ville si la ville envoyée a été reconnue (types autres que 2 et 4), sinon le texte envoyé'
         property_country:
           type: string
           nullable: true
@@ -6498,7 +6558,7 @@ components:
 
     LeadInput:
       type: object
-      description: 'Lead (écriture). **Une mise à jour remplace le lead** : les champs non envoyés sont vidés (`date` repasse à maintenant, `currency` à EUR), sauf `reference`, `provider`, `user`, `contact`, `request`, `type` et `step`.'
+      description: 'Lead (écriture). **Une mise à jour remplace le lead** : les champs non envoyés sont vidés (`date` repasse à maintenant, `currency` à EUR), sauf `reference`, `provider`, `user`, `contact`, `request`, `type`, `step`, le bien lié (`property_reference`), les critères pièces/chambres (`room_*`, `bedroom_*`) et les zones recherchées (`locations`, villes de `property_city`).'
       properties:
         reference:
           type: string
@@ -6587,7 +6647,7 @@ components:
           example: '2024-06-15'
         property_reference:
           type: string
-          description: 'Bien concerné : identifiant Apimo, n° de mandat ou référence du bien. S''il n''est pas trouvé, la référence est ajoutée au message'
+          description: 'Bien concerné : identifiant Apimo, n° de mandat ou référence du bien. S''il n''est pas trouvé, la référence est ajoutée au message ; ignoré si le lead est déjà lié à un bien'
         property_category:
           type: integer
           enum: [1, 2, 3, 4, 5, 6]
@@ -6645,7 +6705,7 @@ components:
           example: FR
         property_city:
           type: string
-          description: 'Villes recherchées : identifiants ou noms séparés par des virgules (types 2 et 4)'
+          description: 'Identifiants ou noms de villes séparés par des virgules (noms cherchés dans le pays de l''agence). Types 2 et 4 : villes recherchées ; autres types : ville du bien (la première reconnue)'
           example: Nice,Cannes
         locations:
           type: array
@@ -6776,7 +6836,7 @@ components:
               rating:
                 type: string
                 nullable: true
-                description: Avis du contact (1 pas intéressé ... 5 très intéressé) → catalogue `action_assessment`
+                description: Avis du contact (1 pas intéressé ... 5 très intéressé, 6 annulé, 7 sans avis) → catalogue `action_assessment`
               assessment:
                 type: string
                 nullable: true
@@ -6900,7 +6960,7 @@ components:
           example: '12345'
         step:
           type: string
-          description: Étape (0 projet, 1 offre, 2 compromis, 3 acte prévu, 4 acte signé, 5 annulé) → catalogue `contract_step`
+          description: Étape (0 projet, 1 offre / réservation, 2 contrat de vente / location, 3 prévision acte, 4 clôturé / encaissé, 5 annulé) → catalogue `contract_step`
         agency:
           type: string
           description: Agence
@@ -6915,7 +6975,7 @@ components:
           example: EUR
         price:
           type: string
-          description: Prix (nombre décimal en chaîne)
+          description: Prix de vente ou loyer (nombre décimal en chaîne)
           example: '250000'
         price_net:
           type: string
@@ -6924,32 +6984,32 @@ components:
         commission:
           type: string
           nullable: true
-          description: Honoraires totaux (nombre décimal en chaîne)
+          description: 'Honoraires de l''affaire, TTC (vente : prix − prix net vendeur ; location : honoraires propriétaire + locataire) (nombre décimal en chaîne)'
         commission_agency:
           type: string
           nullable: true
-          description: Honoraires de l'agence (nombre décimal en chaîne)
+          description: 'Honoraires perçus par l''agence, TTC : part des honoraires de l''affaire qu''elle conserve (nombre décimal en chaîne)'
         commission_owner:
           type: string
           nullable: true
-          description: Honoraires à la charge du vendeur (nombre décimal en chaîne)
+          description: 'Location : honoraires à la charge du propriétaire (bailleur), TTC (nombre décimal en chaîne)'
         commission_customer:
           type: string
           nullable: true
-          description: Honoraires à la charge de l'acquéreur (nombre décimal en chaîne)
+          description: 'Location : honoraires à la charge du locataire, TTC (nombre décimal en chaîne)'
         vat:
           type: string
           nullable: true
-          description: Montant de TVA (nombre décimal en chaîne)
+          description: TVA sur les honoraires perçus `commission_agency` (nombre décimal en chaîne)
         vat_rate:
           type: string
           nullable: true
-          description: Taux de TVA en % (nombre décimal en chaîne)
+          description: Taux de TVA des honoraires, en % (nombre décimal en chaîne)
           example: '20.00'
         deposit:
           type: string
           nullable: true
-          description: Dépôt de garantie / séquestre (nombre décimal en chaîne)
+          description: Séquestre (vente) ou dépôt de garantie (location) (nombre décimal en chaîne)
         project_at:
           type: string
           format: date
@@ -6990,7 +7050,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: Date de l'acte authentique
+          description: Date de signature de l'acte (ou du bail pour une location)
           example: '2024-06-15'
         collected_at:
           type: string
@@ -7002,7 +7062,7 @@ components:
           type: string
           format: date
           nullable: true
-          description: Date de la publicité légale
+          description: Date de déclaration fiscale (agences françaises uniquement)
           example: '2024-06-15'
         canceled_at:
           type: string
@@ -7047,7 +7107,7 @@ components:
             amount:
               type: number
               nullable: true
-              description: Montant facturé
+              description: Montant facturé HT (honoraires perçus hors TVA)
             reference:
               type: string
               nullable: true
@@ -7063,7 +7123,7 @@ components:
                 description: Contact
               type:
                 type: string
-                description: Rôle (acquéreur, vendeur, notaire...) → catalogue `contract_contact`
+                description: Rôle (client, propriétaire, notaire, banque...) → catalogue `contract_contact`
         entries:
           type: array
           description: Écritures (répartition des honoraires)
@@ -7191,7 +7251,7 @@ components:
 
     ContractInput:
       type: object
-      description: Contrat (écriture). Seuls les champs envoyés sont modifiés ; une valeur vide (`null`, `""`, `0`) est ignorée et ne vide pas le champ.
+      description: 'Contrat (écriture). Seuls les champs envoyés sont modifiés ; un champ à `null` est ignoré. Une chaîne vide `""` vide le champ et `0` vide un montant (`price` est obligatoire ; `step: 0` = projet).'
       properties:
         price:
           type: number
@@ -7213,25 +7273,25 @@ components:
           description: Prix net vendeur
         commission:
           type: number
-          description: Honoraires totaux
+          description: 'Honoraires de l''affaire, TTC (vente : prix − prix net vendeur ; location : honoraires propriétaire + locataire)'
         commission_agency:
           type: number
-          description: Honoraires de l'agence
+          description: Honoraires perçus par l'agence, TTC (part des honoraires de l'affaire qu'elle conserve)
         commission_owner:
           type: number
-          description: Honoraires à la charge du vendeur
+          description: 'Location : honoraires à la charge du propriétaire (bailleur), TTC'
         commission_customer:
           type: number
-          description: Honoraires à la charge de l'acquéreur
+          description: 'Location : honoraires à la charge du locataire, TTC'
         vat:
           type: number
-          description: Montant de TVA
+          description: TVA sur les honoraires perçus `commission_agency`
         vat_rate:
           type: number
-          description: Taux de TVA en %
+          description: Taux de TVA des honoraires, en %
         deposit:
           type: number
-          description: Dépôt de garantie / séquestre
+          description: Séquestre (vente) ou dépôt de garantie (location)
         project_at:
           type: string
           format: date
@@ -7265,7 +7325,7 @@ components:
         contract_at:
           type: string
           format: date
-          description: Date de l'acte authentique
+          description: Date de signature de l'acte (ou du bail pour une location)
           example: '2024-06-15'
         collected_at:
           type: string
@@ -7275,7 +7335,7 @@ components:
         legal_notice_at:
           type: string
           format: date
-          description: Date de la publicité légale
+          description: Date de déclaration fiscale (agences françaises uniquement)
           example: '2024-06-15'
         canceled_at:
           type: string
@@ -7322,7 +7382,7 @@ components:
             amount:
               type: number
               nullable: true
-              description: Montant facturé
+              description: Montant facturé HT (honoraires perçus hors TVA)
             reference:
               type: string
               nullable: true
@@ -7379,6 +7439,123 @@ components:
                 type: integer
                 nullable: true
                 description: 'Agence (défaut : agence de l''utilisateur)'
+
+    Book:
+      type: object
+      description: Entrée d'un registre (registre des mandats, gestion, séquestre...)
+      properties:
+        id:
+          type: integer
+          description: Identifiant de l'entrée
+          example: 48012
+        user:
+          type: string
+          description: Utilisateur (négociateur) titulaire de l'entrée
+          example: '3896'
+        step:
+          type: string
+          nullable: true
+          description: 'Étape : 1 réservation (numéro réservé), 2 signé, 3 annulé, 4 clôturé (toujours 4 pour les registres Séquestre et LCB-FT) → catalogue `book_step`'
+          example: '2'
+        type:
+          type: string
+          nullable: true
+          description: 'Registre : 1 transaction (registre des mandats), 2 gestion, 3 recherche, 4 séquestre, 5 délégation, 6 LCB-FT (lutte contre le blanchiment) → catalogue `book_type`'
+          example: '1'
+        subtype:
+          type: string
+          nullable: true
+          description: 'Type de mandat ou d''opération selon le registre. Transaction : 1 mandat de vente simple, 2 co-exclusif, 3 exclusif, 4 délégation de mandat, 5 semi-exclusif, 14 mandat de recherche, 15 mandat de location. Gestion : 20 mandat de gestion locative, 21 mandat de syndic de copropriété. Séquestre : 43 vente, 44 cession de parts. LCB-FT : 60 vérification client. Ces valeurs ne sont pas exposées par `GET /catalogs`'
+          example: '3'
+        contracted_at:
+          type: string
+          format: date
+          nullable: true
+          description: Date de signature
+          example: '2026-03-02'
+        start_at:
+          type: string
+          format: date
+          nullable: true
+          description: Début de validité du mandat
+          example: '2026-03-02'
+        end_at:
+          type: string
+          format: date
+          nullable: true
+          description: Fin de validité du mandat
+          example: '2026-06-02'
+        reference:
+          type: string
+          description: Numéro d'inscription au registre, attribué à la suite par société (les registres Transaction, Recherche et Délégation partagent la même numérotation)
+          example: '1254'
+        contact:
+          type: string
+          nullable: true
+          description: Contact client (identifiant du contact) ayant servi à pré-remplir `owner`
+          example: '845120'
+        owner:
+          type: string
+          nullable: true
+          description: 'Client : nom et coordonnées saisis sur l''entrée (mandant ou copropriété pour les mandats)'
+        property:
+          type: string
+          nullable: true
+          description: Bien lié (identifiant Apimo du bien)
+          example: '181297'
+        property_type:
+          type: string
+          nullable: true
+          description: Type de bien → catalogue `property_type`
+          example: '1'
+        property_address:
+          type: string
+          nullable: true
+          description: Adresse du bien
+        property_city:
+          type: object
+          nullable: true
+          description: Ville du bien
+          properties:
+            id:
+              type: string
+              description: Identifiant de la ville
+              example: '2123'
+            name:
+              type: string
+              nullable: true
+              description: Nom de la ville
+              example: Nice
+            zipcode:
+              type: string
+              nullable: true
+              description: Code postal
+              example: '06000'
+        property_country:
+          type: string
+          nullable: true
+          description: Pays du bien, code ISO 3166-1 alpha-2
+          example: FR
+        comment:
+          type: string
+          nullable: true
+          description: Commentaire
+        created_at:
+          type: string
+          description: Date de création (pour les registres Transaction et Gestion, date de réservation du numéro)
+          example: '2026-02-27 10:12:44'
+        updated_at:
+          type: string
+          description: Date de dernière modification
+          example: '2026-03-02 17:40:03'
+        created_by:
+          type: string
+          description: Créé par (identifiant de l'utilisateur)
+          example: '3896'
+        updated_by:
+          type: string
+          description: Modifié par (identifiant de l'utilisateur)
+          example: '3896'
 
     Residence:
       type: object
@@ -7508,7 +7685,7 @@ components:
                 description: Contact
               type:
                 type: string
-                description: Rôle (copropriétaire, gardien, syndic...)
+                description: Rôle (propriétaire occupant, locataire, gardien, syndic...) → catalogue `occupant`
               shares:
                 type: string
                 nullable: true
@@ -7539,11 +7716,12 @@ components:
                       type:
                         type: integer
                         nullable: true
-                        description: Type d'étage
+                        description: Étage → catalogue `property_floor`
                       value:
-                        type: integer
-                        nullable: true
-                        description: Numéro d'étage
+                        description: 'Numéro d''étage (`null` pour le rez-de-chaussée et les sous-sols) ou `"last"` pour le dernier étage'
+                        anyOf:
+                        - {type: integer, nullable: true}
+                        - {type: string}
               comment:
                 type: string
                 nullable: true
