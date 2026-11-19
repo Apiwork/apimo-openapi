@@ -2378,21 +2378,21 @@ components:
       description: 'Language of the labels: full (`fr_FR`) or short (`fr`) code'
   responses:
     BadRequest:
-      description: 400 - Bad request (invalid JSON, missing token...)
+      description: Bad request (invalid JSON, missing token...)
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 400, title: Bad Request, detail: The JSON is invalid.}
 
     Unauthorized:
-      description: 401 - Invalid credentials (provider ID / token, or IP not allowed)
+      description: Invalid credentials (provider ID / token, or IP not allowed)
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 401, title: Unauthorized, detail: Please check your token}
 
     Forbidden:
-      description: '403 - Access denied: no active connection with this agency, missing scope, or resource not found in the agency'
+      description: 'Access denied: no active connection with this agency, missing scope, or resource not found in the agency'
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
@@ -2402,7 +2402,7 @@ components:
             detail: The request was a valid request, but the server is refusing to respond to it.
 
     NotFound:
-      description: 404 - Unknown route or catalog
+      description: Unknown route or catalog
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
@@ -2412,14 +2412,14 @@ components:
             detail: The requested resource could not be found.
 
     UnprocessableEntity:
-      description: 422 - Invalid value in the request body
+      description: Invalid value in the request body
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 422, title: Unprocessable Entity, detail: The value of type is invalid.}
 
     TooManyRequests:
-      description: 429 - Daily quota exceeded
+      description: Daily quota exceeded
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}

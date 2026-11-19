@@ -2378,21 +2378,21 @@ components:
       description: 'Langue des libellés : code complet (`fr_FR`) ou court (`fr`)'
   responses:
     BadRequest:
-      description: 400 - Requête invalide (JSON invalide, token absent...)
+      description: Requête invalide (JSON invalide, token absent...)
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 400, title: Bad Request, detail: The JSON is invalid.}
 
     Unauthorized:
-      description: 401 - Identifiants invalides (provider ID / token, ou IP non autorisée)
+      description: Identifiants invalides (provider ID / token, ou IP non autorisée)
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 401, title: Unauthorized, detail: Please check your token}
 
     Forbidden:
-      description: '403 - Accès refusé : pas de connexion active avec cette agence, scope manquant, ou ressource introuvable dans l''agence'
+      description: 'Accès refusé : pas de connexion active avec cette agence, scope manquant, ou ressource introuvable dans l''agence'
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
@@ -2402,7 +2402,7 @@ components:
             detail: The request was a valid request, but the server is refusing to respond to it.
 
     NotFound:
-      description: 404 - Route ou catalogue inconnu
+      description: Route ou catalogue inconnu
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
@@ -2412,14 +2412,14 @@ components:
             detail: The requested resource could not be found.
 
     UnprocessableEntity:
-      description: 422 - Valeur invalide dans le corps de la requête
+      description: Valeur invalide dans le corps de la requête
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
           example: {status: 422, title: Unprocessable Entity, detail: The value of type is invalid.}
 
     TooManyRequests:
-      description: 429 - Quota journalier dépassé
+      description: Quota journalier dépassé
       content:
         application/json:
           schema: {$ref: '#/components/schemas/Error'}
