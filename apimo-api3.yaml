@@ -5784,6 +5784,30 @@ components:
               nullable: true
               description: Dernier envoi
               example: '2024-06-15 14:30:00'
+        agreement:
+          type: object
+          nullable: true
+          description: Mandat de recherche (null sans type de mandat)
+          properties:
+            type:
+              type: integer
+              description: Type de mandat → catalogue `property_agreement`
+            reference:
+              type: string
+              nullable: true
+              description: Numéro de mandat
+            start_at:
+              type: string
+              format: date
+              nullable: true
+              description: Début du mandat
+              example: '2024-06-15'
+            end_at:
+              type: string
+              format: date
+              nullable: true
+              description: Fin du mandat
+              example: '2024-06-15'
         category:
           type: string
           description: Catégorie → catalogue `property_category`
@@ -6062,6 +6086,30 @@ components:
               type: integer
               enum: [1, 2, 3, 4]
               description: 'Abonnement aux envois de biens : 1 non abonné, 2 abonné, 3 refusé, 4 retour → catalogue `subscription`'
+        agreement:
+          type: object
+          description: Mandat de recherche ; chaque clé envoyée est écrite, une valeur vide l'efface
+          properties:
+            type:
+              type: integer
+              nullable: true
+              description: Type de mandat → catalogue `property_agreement`
+            reference:
+              type: string
+              nullable: true
+              description: Numéro de mandat
+            start_at:
+              type: string
+              format: date
+              nullable: true
+              description: Début du mandat
+              example: '2024-06-15'
+            end_at:
+              type: string
+              format: date
+              nullable: true
+              description: Fin du mandat
+              example: '2024-06-15'
         category:
           type: integer
           enum: [1, 2, 3, 4, 5, 6]
