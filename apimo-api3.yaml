@@ -6857,6 +6857,9 @@ components:
               type: string
               nullable: true
               description: Nom
+        auto:
+          type: boolean
+          description: Créée automatiquement par Apimo (ex. e-mails de rapprochement automatique), et non par un utilisateur
         created_at:
           type: string
           description: Date de création

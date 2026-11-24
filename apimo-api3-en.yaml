@@ -6857,6 +6857,9 @@ components:
               type: string
               nullable: true
               description: Name
+        auto:
+          type: boolean
+          description: Created automatically by Apimo (e.g. automatic property matching e-mails), not by a user
         created_at:
           type: string
           description: Creation date
