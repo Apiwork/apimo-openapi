@@ -6031,6 +6031,35 @@ components:
               value:
                 type: string
                 description: Libellé du tag
+        periods:
+          type: array
+          description: Séjours voulus d'une demande de location saisonnière (bloc « Saisonnier » de la demande), triés par date de début ; vide si la demande n'en a pas
+          items:
+            type: object
+            properties:
+              start_at:
+                type: string
+                format: date
+                nullable: true
+                description: Début du séjour
+              end_at:
+                type: string
+                format: date
+                nullable: true
+                description: Fin du séjour
+              days_min:
+                type: string
+                nullable: true
+                description: Nombre de jours voulus, minimum
+              days_max:
+                type: string
+                nullable: true
+                description: Nombre de jours voulus, maximum
+          example:
+            - start_at: '2027-03-15'
+              end_at: '2027-04-26'
+              days_min: '42'
+              days_max: '42'
         comment:
           type: string
           nullable: true
