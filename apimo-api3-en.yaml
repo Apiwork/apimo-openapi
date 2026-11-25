@@ -6013,10 +6013,6 @@ components:
           items:
             type: object
             properties:
-              season:
-                type: integer
-                nullable: true
-                description: Season
               start_at:
                 type: string
                 format: date
@@ -6040,8 +6036,7 @@ components:
                     nullable: true
                     description: Maximum
           example:
-            - season: null
-              start_at: '2027-03-15'
+            - start_at: '2027-03-15'
               end_at: '2027-04-26'
               days:
                 min: 42
