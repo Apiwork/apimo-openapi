@@ -6007,9 +6007,9 @@ components:
               value:
                 type: string
                 description: Tag label
-        periods:
+        seasonal_periods:
           type: array
-          description: Stays wanted by a seasonal-rental request (the request's "Seasonal" block), sorted by start date; empty when the request has none
+          description: Stays wanted by a seasonal-rental request (the request's "Seasonal" block), sorted by start date; empty when the request has none or is not a seasonal rental (`category` 3)
           items:
             type: object
             properties:
