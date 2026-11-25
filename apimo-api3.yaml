@@ -6047,24 +6047,19 @@ components:
                 format: date
                 nullable: true
                 description: Fin du séjour
-              days:
-                type: object
-                description: Nombre de jours voulus
-                properties:
-                  min:
-                    type: integer
-                    nullable: true
-                    description: Minimum
-                  max:
-                    type: integer
-                    nullable: true
-                    description: Maximum
+              days_min:
+                type: string
+                nullable: true
+                description: Nombre de jours voulus, minimum
+              days_max:
+                type: string
+                nullable: true
+                description: Nombre de jours voulus, maximum
           example:
             - start_at: '2027-03-15'
               end_at: '2027-04-26'
-              days:
-                min: 42
-                max: 42
+              days_min: '42'
+              days_max: '42'
         comment:
           type: string
           nullable: true
