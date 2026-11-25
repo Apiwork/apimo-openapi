@@ -6007,6 +6007,45 @@ components:
               value:
                 type: string
                 description: Tag label
+        periods:
+          type: array
+          description: Stays wanted by a seasonal-rental request (the request's "Seasonal" block), sorted by start date; empty when the request has none
+          items:
+            type: object
+            properties:
+              season:
+                type: integer
+                nullable: true
+                description: Season
+              start_at:
+                type: string
+                format: date
+                nullable: true
+                description: Stay start
+              end_at:
+                type: string
+                format: date
+                nullable: true
+                description: Stay end
+              days:
+                type: object
+                description: Number of days wanted
+                properties:
+                  min:
+                    type: integer
+                    nullable: true
+                    description: Minimum
+                  max:
+                    type: integer
+                    nullable: true
+                    description: Maximum
+          example:
+            - season: null
+              start_at: '2027-03-15'
+              end_at: '2027-04-26'
+              days:
+                min: 42
+                max: 42
         comment:
           type: string
           nullable: true
